@@ -20,6 +20,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: ''
     },
+    gender: { type: String, enum: ['male', 'female', 'other'] },
     password: {
       type: String,
       required: true,
@@ -40,6 +41,25 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false
+    },
+    loyalty: {
+    points: { type: Number, default: 0 },
+    level: {
+      type: String,
+      enum: ['bronze', 'silver', 'gold', 'vip'],
+      default: 'bronze'
+    }
+  },
+    stats: {
+      bookingCount: { type: Number, default: 0 },
+      reviewCount: { type: Number, default: 0 },
+      totalSpent: { type: Number, default: 0 }, 
+      lastBookingAt: { type: Date },
+      lastActiveAt: { type: Date }
+    }
   },
   {
     timestamps: true,

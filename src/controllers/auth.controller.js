@@ -1,7 +1,7 @@
-import * as authService from '../services/auth.service.js'
+import {authService} from '../services/auth.service.js'
 import { StatusCodes } from 'http-status-codes'
 
-export const register = async (req, res, next) => {
+ const register = async (req, res, next) => {
   try {
     await authService.registerService(req.body)
     res.status(StatusCodes.CREATED).json({
@@ -12,7 +12,7 @@ export const register = async (req, res, next) => {
   }
 }
 
-export const verifyOtp = async (req, res, next) => {
+ const verifyOtp = async (req, res, next) => {
   try {
     await authService.verifyOtpService(req.body)
     res.json({ message: 'Xác thực thành công' })
@@ -21,16 +21,20 @@ export const verifyOtp = async (req, res, next) => {
   }
 }
 
-export const login = async (req, res, next) => {
+ const login = async (req, res, next) => {
   try {
-    const data = await authService.loginService(req.body)
-    res.json(data)
+    const data= await authService.loginService(req.body)
+     res.status(StatusCodes.OK).json({
+      message: 'Đăng nhập thành công',
+      data
+    })
   } catch (err) {
     next(err)
   }
 }
 
-export const forgotPassword = async (req, res, next) => {
+
+ const forgotPassword = async (req, res, next) => {
   try {
     await authService.forgotPasswordService(req.body.email)
     res.json({ message: 'Đã gửi OTP đặt lại mật khẩu' })
@@ -39,7 +43,7 @@ export const forgotPassword = async (req, res, next) => {
   }
 }
 
-export const resetPassword = async (req, res, next) => {
+ const resetPassword = async (req, res, next) => {
   try {
     await authService.resetPasswordService(req.body)
     res.json({ message: 'Đổi mật khẩu thành công' })
@@ -47,7 +51,34 @@ export const resetPassword = async (req, res, next) => {
     next(err)
   }
 }
+ const getAllUsers = async (req, res, next) => {
+  try {
+    const users = await authService.getAllUsersService()
+    res.json({ users })
+  } catch (err) {
+    next(err)
+  }
+}
+ const getMe = async (req, res, next) => {
+  try {
+    const user = await authService.getMeAccount(req.user.id)
 
-export const logout = async (req, res) => {
-  res.json({ message: 'Logout thành công (FE xoá token)' })
+    res.status(StatusCodes.OK).json({
+      message: 'Lấy thông tin cá nhân thành công',
+      data: user
+    })
+  } catch (error) {
+    next(error)
+  }
+}
+
+
+export const AuthController = {
+  register,
+  getAllUsers,
+  getMe,
+  login,
+  forgotPassword,
+  resetPassword,
+  verifyOtp
 }

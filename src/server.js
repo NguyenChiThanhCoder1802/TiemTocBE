@@ -1,32 +1,28 @@
 import express from "express";
 import cors from "cors";
-import authRoutes from "./routes/auth.routes.js";
 import { connectDB } from "./config/mongodb.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import {env } from "./config/environment.js";
+import { APIS } from "./routes/index.routes.js";
 
 const app = express();
 const PORT = env.PORT;
-
-// ===== Middlewares =====
+const HOST = env.HOST;
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-// ===== Connect DB =====
+
 connectDB();
 
-// ===== Routes =====
-app.use("/api/auth", authRoutes);
+app.use("/api", APIS);
 
-// ===== Test route (optional) =====
 app.get("/", (req, res) => {
-  res.send("API Quản Lý Tiệm Tóc đang chạy");
+  res.send("Welcome to the HariSalon API server");
 });
 
-// ===== Error handler (luôn cuối) =====
 app.use(errorHandler);
 
-// ===== Start server =====
 app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  console.log(`Server running at http://${HOST}:${PORT}`);
 });

@@ -1,4 +1,4 @@
-import transporter from "../config/mail";
+import transporter from "../config/mail.js";
 import { env } from "../config/environment.js";
 export const sendOtpEmail = async (email, otp) => {
   await transporter.sendMail({
