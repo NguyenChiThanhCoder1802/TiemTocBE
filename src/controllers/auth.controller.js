@@ -1,7 +1,7 @@
-import {authService} from '../services/auth.service.js'
+import { authService } from '../services/auth.service.js'
 import { StatusCodes } from 'http-status-codes'
 
- const register = async (req, res, next) => {
+const register = async (req, res, next) => {
   try {
     await authService.registerService(req.body)
     res.status(StatusCodes.CREATED).json({
@@ -12,7 +12,16 @@ import { StatusCodes } from 'http-status-codes'
   }
 }
 
- const verifyOtp = async (req, res, next) => {
+const staffRegister = async (req, res, next) => {
+  try {
+    await authService.staffRegisterService(req.body)
+    res.status(StatusCodes.CREATED).json({ message: 'Đã gửi OTP về email (đăng ký nhân viên)' })
+  } catch (err) {
+    next(err)
+  }
+}
+
+const verifyOtp = async (req, res, next) => {
   try {
     await authService.verifyOtpService(req.body)
     res.json({ message: 'Xác thực thành công' })
@@ -21,10 +30,10 @@ import { StatusCodes } from 'http-status-codes'
   }
 }
 
- const login = async (req, res, next) => {
+const login = async (req, res, next) => {
   try {
-    const data= await authService.loginService(req.body)
-     res.status(StatusCodes.OK).json({
+    const data = await authService.loginService(req.body)
+    res.status(StatusCodes.OK).json({
       message: 'Đăng nhập thành công',
       data
     })
@@ -33,8 +42,19 @@ import { StatusCodes } from 'http-status-codes'
   }
 }
 
+const logout = async (req, res, next) => {
+  try {
+    await authService.logoutService(req.user.id)
+    res.json({ message: 'Đăng xuất thành công' })
+  } catch (err) {
+    next(err)
+  }
+}
 
- const forgotPassword = async (req, res, next) => {
+
+
+
+const forgotPassword = async (req, res, next) => {
   try {
     await authService.forgotPasswordService(req.body.email)
     res.json({ message: 'Đã gửi OTP đặt lại mật khẩu' })
@@ -43,7 +63,7 @@ import { StatusCodes } from 'http-status-codes'
   }
 }
 
- const resetPassword = async (req, res, next) => {
+const resetPassword = async (req, res, next) => {
   try {
     await authService.resetPasswordService(req.body)
     res.json({ message: 'Đổi mật khẩu thành công' })
@@ -51,7 +71,7 @@ import { StatusCodes } from 'http-status-codes'
     next(err)
   }
 }
- const getAllUsers = async (req, res, next) => {
+const getAllUsers = async (req, res, next) => {
   try {
     const users = await authService.getAllUsersService()
     res.json({ users })
@@ -59,7 +79,7 @@ import { StatusCodes } from 'http-status-codes'
     next(err)
   }
 }
- const getMe = async (req, res, next) => {
+const getMe = async (req, res, next) => {
   try {
     const user = await authService.getMeAccount(req.user.id)
 
@@ -75,9 +95,12 @@ import { StatusCodes } from 'http-status-codes'
 
 export const AuthController = {
   register,
+  staffRegister,
   getAllUsers,
   getMe,
   login,
+  logout,
+
   forgotPassword,
   resetPassword,
   verifyOtp

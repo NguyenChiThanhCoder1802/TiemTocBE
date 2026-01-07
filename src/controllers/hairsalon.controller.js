@@ -41,18 +41,7 @@ import {StatusCodes} from "http-status-codes";
         next(err);
     }
 };
-export const getServiceStatistics = async (req, res, next) => {
-  try {
-    const data = await HairSalonService.getServiceStatistics()
 
-    res.status(StatusCodes.OK).json({
-      message: 'Service statistics fetched successfully',
-      data
-    })
-  } catch (err) {
-    next(err)
-  }
-}
 
 export const HairSalonController = {
     getHairServices,
@@ -60,5 +49,5 @@ export const HairSalonController = {
     createHairService,
     updateHairService,
     deleteHairService,
-    getServiceStatistics
+
 };

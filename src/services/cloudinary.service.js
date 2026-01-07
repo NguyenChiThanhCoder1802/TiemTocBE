@@ -4,9 +4,7 @@ import ApiError from "../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 import { env } from "../config/environment.js";
 
-/* =====================
-   HELPERS
-===================== */
+
 const generateSecurePublicId = (prefix = "file") => {
   const secret =
     env.CLOUDINARY_PUBLIC_ID_SECRET ||

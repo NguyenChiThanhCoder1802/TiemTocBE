@@ -12,10 +12,15 @@ const reviewSchema = new mongoose.Schema(
     service: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "HairService",
-      required: true,
+     default: null,
       index: true,
     },
-
+     staff: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Staff",
+      default: null,
+      index: true,
+    },
     rating: {
       type: Number,
       required: true,
@@ -48,7 +53,11 @@ const reviewSchema = new mongoose.Schema(
 /* ❗ 1 user chỉ review 1 dịch vụ 1 lần */
 reviewSchema.index(
   { user: 1, service: 1 },
-  { unique: true }
+  { unique: true, partialFilterExpression: { service: { $ne: null } } }
 );
 
+reviewSchema.index(
+  { user: 1, staff: 1 },
+  { unique: true, partialFilterExpression: { staff: { $ne: null } } }
+);
 export default mongoose.model("Review", reviewSchema);

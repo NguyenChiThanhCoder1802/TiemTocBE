@@ -7,12 +7,7 @@ import { authMiddleware, verifyAdmin } from "../middlewares/auth.middleware.js";
 import { createHairServiceSchema, updateHairServiceSchema } from "../validations/hairsalon.validation.js";
 // import { paginationMiddleware } from "../middlewares/pagination.middleware.js";
 const Router = express.Router();
-Router.get(
-  "/statistics",
-  authMiddleware,
-  verifyAdmin,
-  HairSalonController.getServiceStatistics
-);
+
 Router.get("/", HairSalonController.getHairServices);
 Router.get("/:id", HairSalonController.getHairServiceById);
 Router.post("/", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(createHairServiceSchema), HairSalonController.createHairService);

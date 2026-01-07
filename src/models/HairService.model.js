@@ -163,14 +163,6 @@ const hairServiceSchema = new mongoose.Schema(
       default: 0,
       index: true,
     },
-
-    /* ================== SEO ================== */
-    seo: {
-      title: String,
-      description: String,
-      keywords: [String],
-    },
-
     /* ================== STATUS ================== */
     isActive: {
       type: Boolean,
@@ -189,81 +181,5 @@ const hairServiceSchema = new mongoose.Schema(
   }
 );
 
-/* =====================================================
-   PRE SAVE LOGIC (AUTO CALCULATION)
-===================================================== */
-hairServiceSchema.pre("save", function () {
-  const now = new Date();
-
-  /* ===== SERVICE DISCOUNT ===== */
-  if (
-    this.serviceDiscount?.percent > 0 &&
-    this.serviceDiscount?.startAt &&
-    this.serviceDiscount?.endAt &&
-    now >= this.serviceDiscount.startAt &&
-    now <= this.serviceDiscount.endAt
-  ) {
-    this.serviceDiscount.isActive = true;
-
-    this.finalPrice =
-      this.price -
-      (this.price * this.serviceDiscount.percent) / 100;
-  } else {
-    this.serviceDiscount.isActive = false;
-    this.finalPrice = this.price;
-  }
-
-  /* ===== CONVERSION RATE ===== */
-  if (this.viewCount > 0) {
-    this.conversionRate = this.bookingCount / this.viewCount;
-  } else {
-    this.conversionRate = 0;
-  }
-
-  /* ===== POPULARITY SCORE ===== */
-  this.popularityScore =
-    this.bookingCount * 0.4 +
-    this.weeklyBookingCount * 0.2 +
-    this.monthlyBookingCount * 0.2 +
-    this.favoriteCount * 0.1 +
-    this.ratingAverage * this.ratingCount * 0.05 +
-    this.conversionRate * 100 * 0.05;
-
-  /* ===== FEATURED (AUTO) ===== */
-  this.isFeatured =
-    this.bookingCount >= 50 &&
-    this.ratingAverage >= 4.2 &&
-    this.popularityScore >= 70;
-
-  /* ===== PRIORITY (AUTO) ===== */
-  const recencyBonus = this.lastBookedAt
-    ? Math.max(
-        0,
-        30 -
-          Math.floor(
-            (Date.now() - this.lastBookedAt.getTime()) /
-              (1000 * 60 * 60 * 24)
-          )
-      )
-    : 0;
-
-  this.priority =
-    this.popularityScore * 0.7 +
-    this.ratingAverage * 10 +
-    this.conversionRate * 100 +
-    recencyBonus;
-});
-
-/* ================== INDEX TỐI ƯU ================== */
-hairServiceSchema.index({
-  isFeatured: -1,
-  priority: -1,
-  popularityScore: -1,
-});
-
-hairServiceSchema.index({
-  category: 1,
-  finalPrice: 1,
-});
 
 export default mongoose.model("HairService", hairServiceSchema);

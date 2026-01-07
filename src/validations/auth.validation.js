@@ -26,6 +26,19 @@ export const authValidation = {
       name: Joi.string().min(2).max(50).required(),
       email: Joi.string().email().required(),
       password: Joi.string().min(6).required()
+      , applyAsStaff: Joi.boolean().optional()
+    })
+  ),
+
+  staffRegister: validate(
+    Joi.object({
+      name: Joi.string().min(2).max(50).required(),
+      email: Joi.string().email().required(),
+      password: Joi.string().min(6).required(),
+      confirmpassword: Joi.string().min(6).required(),
+      experienceYears: Joi.number().min(0).optional(),
+      skills: Joi.array().items(Joi.string()).min(1).required(),
+      position: Joi.string().valid('stylist', 'assistant', 'manager').optional()
     })
   ),
 
@@ -57,7 +70,7 @@ export const authValidation = {
   ),
   refreshToken: validate(
     Joi.object({
-      refreshToken: Joi.string().required()
+      refreshToken: Joi.string().optional()
     })
   )
 }

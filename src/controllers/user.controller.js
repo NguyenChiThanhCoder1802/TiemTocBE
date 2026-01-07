@@ -1,10 +1,10 @@
 import User from "../models/User.model.js";
 import ApiError from "../utils/ApiError.js";
-
+import { StatusCodes } from "http-status-codes";
 export const UserController = {
   async updateAvatar(req, res) {
     if (!req.body.avatar) {
-      throw new ApiError(400, "Avatar is required");
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Avatar is required");
     }
 
     const user = await User.findByIdAndUpdate(
@@ -13,7 +13,7 @@ export const UserController = {
       { new: true }
     );
 
-    res.status(200).json({
+    res.status(StatusCodes.OK).json({
       message: "Avatar updated successfully",
       avatar: user.avatar
     });

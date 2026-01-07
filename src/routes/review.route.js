@@ -30,6 +30,10 @@ Router.get(
   "/service/:serviceId",
   ReviewController.getReviewsByService
 );
+Router.get(
+  "/staff/:staffId",
+  ReviewController.getReviewsByStaff
+);
 
 /**
  * Cập nhật review

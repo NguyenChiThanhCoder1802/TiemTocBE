@@ -1,15 +1,16 @@
 import bcrypt from 'bcryptjs'
 import User from '../models/User.model.js'
+import Staff from '../models/Staff.model.js'
 import otpCache from '../utils/otp.js'
 import { generateOtp } from '../utils/generateOtp.js'
 import { sendOtpEmail } from '../utils/sendEmail.js'
-import { signAccessToken, signRefreshToken, jwtVerify } from '../utils/jwt.js'
+import { signAccessToken, signRefreshToken } from '../utils/jwt.js'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '../utils/ApiError.js'
 
 const normalizeEmail = (email) => email.toLowerCase().trim()
 
-const registerService = async ({ name, email, password, confirmpassword }) => {
+const registerService = async ({ name, email, password, confirmpassword, applyAsStaff }) => {
   if (!name || !email || !password || !confirmpassword)
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin đăng ký')
 
@@ -34,7 +35,56 @@ const registerService = async ({ name, email, password, confirmpassword }) => {
     name,
     email: emailNormalized,
     password: hashedPassword,
-    isVerified: false
+    isVerified: false,
+    staffRequested: Boolean(applyAsStaff) || false,
+    staffRequestedAt: applyAsStaff ? new Date() : undefined
+  })
+
+  const otp = generateOtp()
+  const hashedOtp = await bcrypt.hash(otp, 10)
+  otpCache.set(emailNormalized, hashedOtp)
+
+  await sendOtpEmail(emailNormalized, otp)
+}
+
+const staffRegisterService = async ({ name, email, password, confirmpassword, experienceYears, skills, position }) => {
+  if (!name || !email || !password || !confirmpassword)
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin đăng ký')
+
+  if (password !== confirmpassword)
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Mật khẩu không khớp')
+
+  const emailNormalized = normalizeEmail(email)
+
+  if (otpCache.get(emailNormalized))
+    throw new ApiError(
+      StatusCodes.TOO_MANY_REQUESTS,
+      'Vui lòng chờ OTP cũ hết hạn'
+    )
+
+  const existed = await User.findOne({ email: emailNormalized })
+  if (existed)
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Email đã tồn tại')
+
+  const hashedPassword = await bcrypt.hash(password, 10)
+
+  const user = await User.create({
+    name,
+    email: emailNormalized,
+    password: hashedPassword,
+    isVerified: false,
+    staffRequested: true,
+    staffRequestedAt: new Date()
+  })
+
+  // create Staff profile in pending status
+  await Staff.create({
+    user: user._id,
+    experienceYears: experienceYears || 0,
+    skills: Array.isArray(skills) ? skills : [],
+    position: position || 'stylist',
+    status: 'pending',
+    joinedAt: null
   })
 
   const otp = generateOtp()
@@ -85,6 +135,11 @@ const loginService = async ({ email, password }) => {
   if (!match)
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Sai email hoặc mật khẩu')
 
+  user.isOnline = true
+  user.stats = user.stats || {}
+  user.stats.lastActiveAt = new Date()
+  await user.save()
+
   const payload = {
     id: user._id,
     email: user.email,
@@ -101,6 +156,13 @@ const loginService = async ({ email, password }) => {
       role: user.role,
     }
   }
+}
+
+const logoutService = async (userId) => {
+  const user = await User.findById(userId)
+  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại')
+  user.isOnline = false
+  await user.save()
 }
 
 const forgotPasswordService = async (email) => {
@@ -149,37 +211,16 @@ const resetPasswordService = async ({ email, otp, newPassword }) => {
 
   otpCache.del(`reset_${emailNormalized}`)
 }
-const refreshTokenService = async (refreshToken) => {
-  if (!refreshToken) {
-    throw new ApiError(
-      StatusCodes.UNAUTHORIZED,
-      'Refresh token không được cung cấp'
-    )
-  }
 
-  // Verify refresh token
-  const decoded = jwtVerify(refreshToken, true)
-
-  const payload = {
-    id: decoded.id,
-    email: decoded.email,
-    role: decoded.role
-  }
-
-  return {
-    accessToken: signAccessToken(payload),
-    refreshToken: signRefreshToken(payload) // rotate
-  }
-}
 const getAllUsersService = async () => {
   const users = await User.find().select('-password')
   return users
 }
-const getMeAccount = async (userId)=>{
+const getMeAccount = async (userId) => {
   const user = await User.findById(userId, {
-  password: 0,
-  __v: 0
-})
+    password: 0,
+    __v: 0
+  })
 
   if (!user) {
     throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại')
@@ -189,11 +230,13 @@ const getMeAccount = async (userId)=>{
 }
 export const authService = {
   registerService,
+  staffRegisterService,
   verifyOtpService,
   loginService,
   forgotPasswordService,
   resetPasswordService,
-  refreshTokenService,
+
   getAllUsersService,
   getMeAccount
+  , logoutService
 }
