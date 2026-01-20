@@ -41,7 +41,7 @@ const getCategoryWithServices = async (categoryId) => {
     const category = await getCategoryById(categoryId);
 
     const services = await HairService.find({
-        category: category.name,
+        category: category._id,
         isDeleted: false,
         isActive: true,
     });
@@ -132,7 +132,7 @@ const deleteCategory = async (categoryId) => {
 
     // Check if category has services
     const serviceCount = await HairService.countDocuments({
-        category: category.name,
+        category: category._id,
         isDeleted: false,
     });
 

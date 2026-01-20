@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import HairService from "../models/HairService.model.js";
 import Category from "../models/Category.model.js";
 import ApiError from "../utils/ApiError.js";
@@ -9,15 +10,41 @@ import {
   calculateConversionRate,
   calculatePopularityScore,
   calculateFeatured,
-  calculatePriority
+  calculatePriority,
 } from "../domains/hairService/hairServiceCalculator.js";
 import { makeSlug } from "../utils/slug.js";
 import crypto from "crypto";
 
+/* ================= CATEGORY VALIDATION ================= */
+const validateCategory = async (category) => {
+  const categoryId =
+    typeof category === "object" ? category._id : category;
 
+  if (!mongoose.Types.ObjectId.isValid(categoryId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Category không hợp lệ");
+  }
 
+  const found = await Category.findOne({
+    _id: categoryId,
+    isDeleted: false,
+    isActive: true,
+  });
+
+  if (!found) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Danh mục không tồn tại hoặc không hoạt động"
+    );
+  }
+
+  return found;
+};
+
+/* ================= GET ================= */
 const getHairServiceById = async (serviceId) => {
-  const service = await HairService.findById(serviceId);
+  const service = await HairService.findById(serviceId)
+    .populate("category", "name")
+    .populate("includedServices", "name finalPrice");
 
   if (!service) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Service not found");
@@ -31,18 +58,12 @@ const getHairServiceById = async (serviceId) => {
   return applyServiceDiscount(service);
 };
 
-
-
 const getHairServices = async (filters = {}) => {
-  const query = {
-    isDeleted: false,
-    isActive: true
-  };
+  const query = { isDeleted: false, isActive: true };
 
-  /* ================= CATEGORY FILTER ================= */
   if (filters.category) {
-    await validateCategory(filters.category);
-    query.category = filters.category;
+    const cat = await validateCategory(filters.category);
+    query.category = cat._id;
   }
 
   const services = await HairService.find(query)
@@ -52,43 +73,11 @@ const getHairServices = async (filters = {}) => {
   return services.map(applyServiceDiscount);
 };
 
-
-/**
- * Validate category exists and is active
- * @param {String} categoryName - Category name
- * @returns {Promise<Object>} Category object
- */
-const validateCategory = async (categoryId) => {
-  const category = await Category.findOne({
-    _id: categoryId,
-    isDeleted: false,
-    isActive: true,
-  });
-
-  if (!category) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      `Danh mục "${categoryId}" không tồn tại hoặc không hoạt động`
-    );
-  }
-
-  return category;
-};
-
-
+/* ================= CREATE ================= */
 const createHairService = async (payload) => {
+  const category = await validateCategory(payload.category);
+  payload.category = category._id;
 
-  /* ================= CATEGORY VALIDATION ================= */
-  if (!payload.category) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      "Danh mục (category) là bắt buộc"
-    );
-  }
-
-  await validateCategory(payload.category);
-
-  /* ================= SLUG ================= */
   payload.slug = payload.slug
     ? makeSlug(payload.slug)
     : makeSlug(payload.name || crypto.randomBytes(6).toString("hex"));
@@ -99,7 +88,6 @@ const createHairService = async (payload) => {
   }
   payload.slug = slugCandidate;
 
-  /* ================= TAGS ================= */
   if (payload.tags) {
     payload.tags = normalizeTags(
       typeof payload.tags === "string"
@@ -108,12 +96,9 @@ const createHairService = async (payload) => {
     );
   }
 
-  /* ================= IMAGES ================= */
-  if (!Array.isArray(payload.images)) {
-    payload.images = [];
-  }
+  if (!Array.isArray(payload.images)) payload.images = [];
 
-  /* ================= COMBO VALIDATION ================= */
+  /* ===== COMBO LOGIC ===== */
   if (payload.isCombo) {
     if (
       !Array.isArray(payload.includedServices) ||
@@ -125,69 +110,76 @@ const createHairService = async (payload) => {
       );
     }
 
-    // ❌ combo không có price, duration riêng
+    if (!payload.combo?.comboPrice || !payload.combo?.endAt) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Combo phải có giá combo và ngày kết thúc"
+      );
+    }
+
+    const services = await HairService.find({
+      _id: { $in: payload.includedServices },
+      isDeleted: false,
+      isActive: true,
+    });
+
+    payload.combo.originalPrice = services.reduce(
+      (sum, s) => sum + s.finalPrice,
+      0
+    );
+
     delete payload.price;
     delete payload.duration;
   } else {
-    // ❌ service đơn không được có includedServices
     payload.includedServices = [];
+    payload.combo = undefined;
   }
 
-  /* ================= PRICE CALC ================= */
   const discountResult = await calculateServiceDiscount(payload);
-
   payload.finalPrice = discountResult.finalPrice;
   payload.serviceDiscount = {
     ...payload.serviceDiscount,
-    isActive: discountResult.isActive
+    isActive: discountResult.isActive,
   };
 
   return await HairService.create(payload);
 };
 
-
-
+/* ================= UPDATE ================= */
 const updateHairService = async (serviceId, payload) => {
   const service = await HairService.findById(serviceId);
-
   if (!service) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Service not found");
   }
 
-  /* ================= CATEGORY VALIDATION ================= */
-  if (payload.category && payload.category !== service.category) {
-    await validateCategory(payload.category);
+  if (payload.category) {
+    const cat = await validateCategory(payload.category);
+    payload.category = cat._id;
   }
 
-  /* ================= SLUG ================= */
   if (payload.slug && payload.slug !== service.slug) {
     const newSlug = makeSlug(payload.slug);
-
-    const existing = await HairService.findOne({
+    const exists = await HairService.findOne({
       slug: newSlug,
-      _id: { $ne: serviceId }
+      _id: { $ne: serviceId },
     });
-
-    if (existing) {
+    if (exists) {
       throw new ApiError(
         StatusCodes.CONFLICT,
         "Service with this slug already exists"
       );
     }
-
     payload.slug = newSlug;
   }
 
-  /* ================= TAGS ================= */
   if ("tags" in payload) {
     service.tags = normalizeTags(payload.tags);
     delete payload.tags;
   }
 
-  /* ================= COMBO RULE ================= */
   if (payload.isCombo) {
     if (
-      !Array.isArray(payload.includedServices) ||
+      payload.includedServices &&
       payload.includedServices.length < 2
     ) {
       throw new ApiError(
@@ -196,17 +188,30 @@ const updateHairService = async (serviceId, payload) => {
       );
     }
 
+    if (payload.includedServices) {
+      const services = await HairService.find({
+        _id: { $in: payload.includedServices },
+        isDeleted: false,
+        isActive: true,
+      });
+
+      service.combo.originalPrice = services.reduce(
+        (sum, s) => sum + s.finalPrice,
+        0
+      );
+    }
+
     delete payload.price;
     delete payload.duration;
   } else {
-    payload.includedServices = [];
+    service.isCombo = false;
+    service.includedServices = [];
+    service.combo = undefined;
   }
 
   Object.assign(service, payload);
 
-  /* ================= RECALC ================= */
   const discountResult = await calculateServiceDiscount(service);
-
   service.finalPrice = discountResult.finalPrice;
   service.serviceDiscount.isActive = discountResult.isActive;
 
@@ -218,14 +223,15 @@ const updateHairService = async (serviceId, payload) => {
   return await service.save();
 };
 
+/* ================= DELETE ================= */
 const deleteHairService = async (serviceId) => {
   const service = await HairService.findById(serviceId);
-
   if (!service) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Service not found");
   }
 
   service.isDeleted = true;
+  service.isActive = false;
   return await service.save();
 };
 
@@ -235,5 +241,4 @@ export const HairSalonService = {
   deleteHairService,
   getHairServices,
   getHairServiceById,
-  validateCategory,
 };

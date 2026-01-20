@@ -21,3 +21,14 @@ export const validate = (schema) => {
     next();
   };
 };
+export const normalizeBody = (req, res, next) => {
+  if (req.body.isCombo !== undefined) {
+    req.body.isCombo = req.body.isCombo === "true"
+  }
+
+  if (req.body.priority) {
+    req.body.priority = Number(req.body.priority)
+  }
+
+  next()
+}

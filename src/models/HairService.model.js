@@ -83,7 +83,21 @@ const hairServiceSchema = new mongoose.Schema(
       default: false,
       index: true,
     },
+    combo: {
+    originalPrice: {
+      type: Number, // tổng giá gốc các dịch vụ
+      min: 0,
+    },
 
+    comboPrice: {
+      type: Number, // giá bán combo
+      min: 0,
+    },
+
+    endAt: {
+      type: Date, // ngày kết thúc combo
+    },
+  },
     includedServices: [
       {
         type: mongoose.Schema.Types.ObjectId,
