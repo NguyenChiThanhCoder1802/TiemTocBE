@@ -24,9 +24,9 @@ const hairServiceSchema = new mongoose.Schema(
     },
 
     category: {
-      type: String,
-      trim: true,
-      index: true,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
     },
 
     tags: {

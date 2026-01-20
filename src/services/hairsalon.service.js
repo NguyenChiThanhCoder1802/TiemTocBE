@@ -1,4 +1,5 @@
 import HairService from "../models/HairService.model.js";
+import Category from "../models/Category.model.js";
 import ApiError from "../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 import { normalizeTags } from "../utils/normalizeTags.js";
@@ -33,16 +34,59 @@ const getHairServiceById = async (serviceId) => {
 
 
 const getHairServices = async (filters = {}) => {
-  const query = { isDeleted: false, ...filters };
+  const query = {
+    isDeleted: false,
+    isActive: true
+  };
+
+  /* ================= CATEGORY FILTER ================= */
+  if (filters.category) {
+    await validateCategory(filters.category);
+    query.category = filters.category;
+  }
 
   const services = await HairService.find(query)
+    .populate("category", "name")
     .sort({ priority: -1, popularityScore: -1 });
 
   return services.map(applyServiceDiscount);
 };
 
 
+/**
+ * Validate category exists and is active
+ * @param {String} categoryName - Category name
+ * @returns {Promise<Object>} Category object
+ */
+const validateCategory = async (categoryId) => {
+  const category = await Category.findOne({
+    _id: categoryId,
+    isDeleted: false,
+    isActive: true,
+  });
+
+  if (!category) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      `Danh mục "${categoryId}" không tồn tại hoặc không hoạt động`
+    );
+  }
+
+  return category;
+};
+
+
 const createHairService = async (payload) => {
+
+  /* ================= CATEGORY VALIDATION ================= */
+  if (!payload.category) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Danh mục (category) là bắt buộc"
+    );
+  }
+
+  await validateCategory(payload.category);
 
   /* ================= SLUG ================= */
   payload.slug = payload.slug
@@ -108,6 +152,11 @@ const updateHairService = async (serviceId, payload) => {
 
   if (!service) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Service not found");
+  }
+
+  /* ================= CATEGORY VALIDATION ================= */
+  if (payload.category && payload.category !== service.category) {
+    await validateCategory(payload.category);
   }
 
   /* ================= SLUG ================= */
@@ -186,4 +235,5 @@ export const HairSalonService = {
   deleteHairService,
   getHairServices,
   getHairServiceById,
+  validateCategory,
 };

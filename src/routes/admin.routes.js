@@ -5,4 +5,7 @@ const Router = express.Router();
 Router.get("/dashboard", authMiddleware, verifyAdmin, AdminController.getAdminDashboard);
 Router.get('/staffs', authMiddleware, verifyAdmin, AdminController.getStaffList)
 Router.post('/staffs/:userId/approve', authMiddleware, verifyAdmin, AdminController.approveStaff)
+
+
+
 export const adminRouter = Router;

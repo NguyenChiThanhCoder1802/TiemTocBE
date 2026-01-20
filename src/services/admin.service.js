@@ -90,7 +90,7 @@ export const getStaffList = async ({ onlyOnline = false } = {}) => {
     if (onlyOnline) {
         const staffs = await Staff.find()
             .populate({ path: 'user', match: { isOnline: true }, select: 'name email isOnline role status' })
-        // filter out staffs whose populate returned null
+        
         return staffs.filter(s => s.user)
     }
 

@@ -6,8 +6,6 @@ import {
   approveStaff as approveStaffService
 } from "../services/admin.service.js"
 
-
-
 const getAdminDashboard = async (req, res, next) => {
   try {
     const stats = await getServiceStatistics()
@@ -55,5 +53,6 @@ const approveStaff = async (req, res, next) => {
 export const AdminController = {
   getAdminDashboard,
   getStaffList,
-  approveStaff
+  approveStaff,
+
 }

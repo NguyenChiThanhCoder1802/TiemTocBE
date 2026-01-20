@@ -1,13 +1,22 @@
 import {HairSalonService} from "../services/hairsalon.service.js";
 import {StatusCodes} from "http-status-codes";
- const getHairServices = async (req, res, next) => {
-    try {
-        const hairServices = await HairSalonService.getHairServices(req.query);
-        res.status(StatusCodes.OK).json({message: "Hair services retrieved successfully", data: hairServices});
-    } catch (err) {
-        next(err);
-    }
+const getHairServices = async (req, res, next) => {
+  try {
+    const { category } = req.query;
+
+    const services = await HairSalonService.getHairServices({
+      category
+    });
+
+    res.status(StatusCodes.OK).json({
+      message: "Services retrieved successfully",
+      data: services
+    });
+  } catch (err) {
+    next(err);
+  }
 };
+
  const getHairServiceById = async (req, res, next) => {
     try {
         const hairService = await HairSalonService.getHairServiceById(req.params.id);
