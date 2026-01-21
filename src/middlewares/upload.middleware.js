@@ -46,3 +46,17 @@ export const uploadServiceImagesMiddleware = async (req, res, next) => {
     next(err);
   }
 };
+
+/* Combo images */
+export const uploadComboImagesMiddleware = async (req, res, next) => {
+  try {
+    if (!req.files?.length) return next();
+
+    const uploaded = await CloudinaryService.uploadServiceImages(req.files);
+    req.body.images = uploaded.map(i => i.url);
+
+    next();
+  } catch (err) {
+    next(err);
+  }
+};
