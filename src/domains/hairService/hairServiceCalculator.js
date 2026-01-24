@@ -1,74 +1,33 @@
-import HairService from "../../models/HairService.model.js";
-
 /* ================= PRICE & DISCOUNT ================= */
 
 export const calculateServiceDiscount = async (service) => {
-  const now = new Date();
-
-  /* ================= COMBO ================= */
-  if (service.isCombo) {
-    if (!service.includedServices?.length) {
-      return {
-        isActive: false,
-        finalPrice: 0
-      };
-    }
-
-    // Lấy các service con
-    const services = await HairService.find({
-      _id: { $in: service.includedServices },
-      isDeleted: false,
-      isActive: true
-    });
-
-    // Tổng giá các service con (ưu tiên finalPrice)
-    const basePrice = services.reduce(
-      (sum, s) => sum + (s.finalPrice ?? s.price),
-      0
-    );
-
-    let finalPrice = basePrice;
-    let isActive = false;
-
-    if (
-      service.serviceDiscount?.percent > 0 &&
-      service.serviceDiscount.startAt &&
-      service.serviceDiscount.endAt &&
-      now >= service.serviceDiscount.startAt &&
-      now <= service.serviceDiscount.endAt
-    ) {
-      finalPrice =
-        basePrice -
-        (basePrice * service.serviceDiscount.percent) / 100;
-      isActive = true;
-    }
-
-    return {
-      isActive,
-      finalPrice: Math.round(finalPrice)
-    };
+  if (!service || typeof service.price !== "number") {
+    throw new Error("calculateServiceDiscount: price must be number");
   }
 
-  /* ================= SERVICE ĐƠN ================= */
+  const now = new Date();
+
   let finalPrice = service.price;
   let isActive = false;
 
+  const discount = service.serviceDiscount;
+
   if (
-    service.serviceDiscount?.percent > 0 &&
-    service.serviceDiscount.startAt &&
-    service.serviceDiscount.endAt &&
-    now >= service.serviceDiscount.startAt &&
-    now <= service.serviceDiscount.endAt
+    discount &&
+    discount.percent > 0 &&
+    discount.startAt &&
+    discount.endAt &&
+    now >= discount.startAt &&
+    now <= discount.endAt
   ) {
     finalPrice =
-      service.price -
-      (service.price * service.serviceDiscount.percent) / 100;
+      service.price - (service.price * discount.percent) / 100;
     isActive = true;
   }
 
   return {
     isActive,
-    finalPrice: Math.round(finalPrice)
+    finalPrice: Math.round(finalPrice),
   };
 };
 

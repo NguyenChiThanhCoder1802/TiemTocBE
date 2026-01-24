@@ -13,16 +13,21 @@ export const createComboSchema = Joi.object({
   name: Joi.string().trim().min(3).required(),
 
   slug: Joi.string()
-    .trim()
-    .lowercase()
-    .pattern(/^[a-z0-9-]+$/)
-    .required(),
+  .trim()
+  .lowercase()
+  .pattern(/^[a-z0-9-]+$/)
+  .optional(),
+
 
   description: Joi.string().allow("").max(500),
 
   images: Joi.array().items(Joi.string().uri()),
 
-  tags: Joi.array().items(Joi.string().trim()),
+  tags: Joi.alternatives().try(
+  Joi.array().items(Joi.string().trim()),
+  Joi.string()
+).optional(),
+
 
   services: Joi.array()
     .items(

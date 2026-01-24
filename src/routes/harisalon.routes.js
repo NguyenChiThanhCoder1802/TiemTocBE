@@ -1,5 +1,5 @@
 import express from "express";
-import { validate, normalizeBody } from "../middlewares/validate.middleware.js";
+import { validate } from "../middlewares/validate.middleware.js";
 import { HairSalonController } from "../controllers/hairsalon.controller.js";
 import { upload, uploadServiceImagesMiddleware } from "../middlewares/upload.middleware.js";
 // import { limit } from "../middlewares/limit.middleware.js";
@@ -10,7 +10,7 @@ const Router = express.Router();
 
 Router.get("/", HairSalonController.getHairServices);
 Router.get("/:id", HairSalonController.getHairServiceById);
-Router.post("/", authMiddleware, verifyAdmin, upload.array("images", 6),normalizeBody, uploadServiceImagesMiddleware, validate(createHairServiceSchema), HairSalonController.createHairService);
+Router.post("/", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(createHairServiceSchema), HairSalonController.createHairService);
 Router.put("/:id", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(updateHairServiceSchema), HairSalonController.updateHairService);
 Router.delete("/:id", authMiddleware, verifyAdmin, HairSalonController.deleteHairService);
 

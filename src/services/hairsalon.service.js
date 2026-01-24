@@ -14,7 +14,7 @@ import {
 } from "../domains/hairService/hairServiceCalculator.js";
 import { makeSlug } from "../utils/slug.js";
 import crypto from "crypto";
-
+// chỉnh sửa lại dịch vụ đơn, validation
 /* ================= CATEGORY VALIDATION ================= */
 const validateCategory = async (category) => {
   const categoryId =
@@ -42,9 +42,16 @@ const validateCategory = async (category) => {
 
 /* ================= GET ================= */
 const getHairServiceById = async (serviceId) => {
-  const service = await HairService.findById(serviceId)
+  if (!mongoose.Types.ObjectId.isValid(serviceId)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Service ID không hợp lệ");
+  }
+
+  const service = await HairService.findOne({
+    _id: serviceId,
+    isDeleted: false,
+  })
     .populate("category", "name")
-    .populate("includedServices", "name finalPrice");
+    .lean();
 
   if (!service) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Service not found");
@@ -57,6 +64,7 @@ const getHairServiceById = async (serviceId) => {
 
   return applyServiceDiscount(service);
 };
+
 
 const getHairServices = async (filters = {}) => {
   const query = { isDeleted: false, isActive: true };
@@ -98,42 +106,6 @@ const createHairService = async (payload) => {
 
   if (!Array.isArray(payload.images)) payload.images = [];
 
-  /* ===== COMBO LOGIC ===== */
-  if (payload.isCombo) {
-    if (
-      !Array.isArray(payload.includedServices) ||
-      payload.includedServices.length < 2
-    ) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Combo phải có ít nhất 2 dịch vụ"
-      );
-    }
-
-    if (!payload.combo?.comboPrice || !payload.combo?.endAt) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Combo phải có giá combo và ngày kết thúc"
-      );
-    }
-
-    const services = await HairService.find({
-      _id: { $in: payload.includedServices },
-      isDeleted: false,
-      isActive: true,
-    });
-
-    payload.combo.originalPrice = services.reduce(
-      (sum, s) => sum + s.finalPrice,
-      0
-    );
-
-    delete payload.price;
-    delete payload.duration;
-  } else {
-    payload.includedServices = [];
-    payload.combo = undefined;
-  }
 
   const discountResult = await calculateServiceDiscount(payload);
   payload.finalPrice = discountResult.finalPrice;
@@ -177,43 +149,23 @@ const updateHairService = async (serviceId, payload) => {
     delete payload.tags;
   }
 
-  if (payload.isCombo) {
-    if (
-      payload.includedServices &&
-      payload.includedServices.length < 2
-    ) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Combo phải có ít nhất 2 dịch vụ"
-      );
-    }
-
-    if (payload.includedServices) {
-      const services = await HairService.find({
-        _id: { $in: payload.includedServices },
-        isDeleted: false,
-        isActive: true,
-      });
-
-      service.combo.originalPrice = services.reduce(
-        (sum, s) => sum + s.finalPrice,
-        0
-      );
-    }
-
-    delete payload.price;
-    delete payload.duration;
-  } else {
-    service.isCombo = false;
-    service.includedServices = [];
-    service.combo = undefined;
+  if ("images" in payload && !Array.isArray(payload.images)) {
+    delete payload.images;
   }
+  if ("price" in payload) {
+  payload.price = Number(payload.price);
+}
 
   Object.assign(service, payload);
 
-  const discountResult = await calculateServiceDiscount(service);
+  const discountResult = await calculateServiceDiscount({
+    price: service.price,
+    serviceDiscount: service.serviceDiscount,
+  });
   service.finalPrice = discountResult.finalPrice;
-  service.serviceDiscount.isActive = discountResult.isActive;
+  if (service.serviceDiscount) {
+    service.serviceDiscount.isActive = discountResult.isActive;
+  }
 
   service.conversionRate = calculateConversionRate(service);
   service.popularityScore = calculatePopularityScore(service);

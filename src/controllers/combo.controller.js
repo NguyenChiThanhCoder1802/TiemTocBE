@@ -45,7 +45,9 @@ export const deleteCombo = async (req, res, next) => {
 export const listCombos = async (req, res, next) => {
   try {
     const combos = await ComboSalonService.listCombos({}, req.query);
-    res.status(StatusCodes.OK).json(combos);
+    res.status(StatusCodes.OK).json({
+      data: combos
+    });
   } catch (err) {
     next(err);
   }

@@ -22,7 +22,13 @@ const comboServiceSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-
+    category: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
+      index: true,
+      immutable: true, // ⬅️ MongoDB level: không cho update
+    },
     images: {
       type: [String],
       default: [],

@@ -5,7 +5,7 @@ import { uploadComboImagesMiddleware } from "../middlewares/upload.middleware.js
 import { validate } from "../middlewares/validate.middleware.js";
 import { createComboSchema, updateComboSchema } from "../validations/combo.validation.js";
 import { verifyAdmin,authMiddleware } from "../middlewares/auth.middleware.js";
-
+import { parseComboBody } from "../middlewares/combo.middleware.js";
 const Router = express.Router();
 
 Router.get("/", ComboController.listCombos);
@@ -17,6 +17,7 @@ Router.post(
   verifyAdmin,
   upload.array("images", 5),
   uploadComboImagesMiddleware,
+  parseComboBody,
   validate(createComboSchema),
   ComboController.createCombo
 );
@@ -27,6 +28,7 @@ Router.put(
   verifyAdmin,
   upload.array("images", 5),
   uploadComboImagesMiddleware,
+  parseComboBody,
   validate(updateComboSchema),
   ComboController.updateCombo
 );
