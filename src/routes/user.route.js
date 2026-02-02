@@ -15,5 +15,17 @@ Router.put(
   uploadAvatarMiddleware,
   UserController.updateAvatar
 );
+// yêu thích dịch vụ
+Router.post(
+  "/me/favorites/:serviceId",
+  authMiddleware,
+  UserController.toggleFavoriteService
+);
+// lấy danh sách dịch vụ yêu thích
+Router.get(
+  "/me/favorites",
+  authMiddleware,
+  UserController.getMyFavoriteServices
+);
 
 export const userRouter = Router;

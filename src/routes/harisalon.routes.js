@@ -5,10 +5,13 @@ import { upload, uploadServiceImagesMiddleware } from "../middlewares/upload.mid
 // import { limit } from "../middlewares/limit.middleware.js";
 import { authMiddleware, verifyAdmin } from "../middlewares/auth.middleware.js";
 import { createHairServiceSchema, updateHairServiceSchema } from "../validations/hairsalon.validation.js";
-// import { paginationMiddleware } from "../middlewares/pagination.middleware.js";
+import { paginationMiddleware } from "../middlewares/pagination.middleware.js";
 const Router = express.Router();
 
-Router.get("/", HairSalonController.getHairServices);
+Router.get("/", paginationMiddleware,HairSalonController.getHairServices);
+Router.get("/latest", HairSalonController.getLatestHairServices);
+Router.get("/popular/favorites", HairSalonController.getMostFavoritedServices);
+
 Router.get("/:id", HairSalonController.getHairServiceById);
 Router.post("/", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(createHairServiceSchema), HairSalonController.createHairService);
 Router.put("/:id", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(updateHairServiceSchema), HairSalonController.updateHairService);

@@ -23,13 +23,6 @@ const discountCardSchema = new mongoose.Schema(
       trim: true,
     },
 
-    targetType: {
-      type: String,
-      enum: ["order", "service"],
-      required: true,
-      index: true,
-    },
-
     discountType: {
       type: String,
       enum: ["percent", "fixed"],
@@ -54,7 +47,6 @@ const discountCardSchema = new mongoose.Schema(
     /* ================= APPLY CONDITIONS ================= */
     /**
      * Giá trị tối thiểu để được áp mã
-     * - order  → tổng tiền đơn
      * - service → giá dịch vụ
      */
     minValue: {
@@ -63,7 +55,10 @@ const discountCardSchema = new mongoose.Schema(
       min: 0,
     },
 
-
+     /**
+     * Danh sách dịch vụ được áp mã
+     * - Rỗng => áp cho tất cả dịch vụ
+     */
     serviceIds: [
       {
         type: mongoose.Schema.Types.ObjectId,

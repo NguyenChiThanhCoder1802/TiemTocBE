@@ -21,6 +21,6 @@ Router.put("/:id",authMiddleware,verifyAdmin,validate(updateDiscountSchema),Disc
 Router.delete("/:id",authMiddleware,verifyAdmin,DiscountCardController.deleteDiscount);
 
 
-Router.get("/",authMiddleware,verifyAdmin,DiscountCardController.getAllDiscounts);
+Router.get("/",authMiddleware,DiscountCardController.getAllDiscounts);
 
 export const DiscountCardRouter = Router;

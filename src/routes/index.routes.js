@@ -8,6 +8,9 @@ import { adminRouter } from "./admin.routes.js";
 import { DiscountCardRouter } from "./discountCard.route.js";
 import { staffRouter } from "./staff.routes.js";
 import { ComboRouter } from "./combo.route.js";
+import { BookingRouter } from "./booking.route.js";
+import { paymentRouter } from "./payment.route.js";
+
 const Router = express.Router();
 Router.use("/admin", adminRouter);
 Router.use("/auth", authRouter);
@@ -18,4 +21,7 @@ Router.use("/users", userRouter)
 Router.use('/staffs', staffRouter)
 Router.use("/combos", ComboRouter);
 Router.use("/discount-cards", DiscountCardRouter);
+Router.use("/bookings", BookingRouter);
+Router.use("/payments", paymentRouter);  
+
 export const APIS = Router;

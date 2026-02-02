@@ -35,10 +35,23 @@ const reviewSchema = new mongoose.Schema(
     },
 
     images: {
-      type: [String], // ảnh review (nếu có)
+      type: [String], 
       default: [],
     },
-
+//     adminReply: {
+//   content: {
+//     type: String,
+//     trim: true,
+//     maxlength: 1000,
+//   },
+//   repliedBy: {
+//     type: mongoose.Schema.Types.ObjectId,
+//     ref: "User", // admin
+//   },
+//   repliedAt: {
+//     type: Date,
+//   },
+// },
     isDeleted: {
       type: Boolean,
       default: false,

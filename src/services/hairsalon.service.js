@@ -14,7 +14,6 @@ import {
 } from "../domains/hairService/hairServiceCalculator.js";
 import { makeSlug } from "../utils/slug.js";
 import crypto from "crypto";
-// chỉnh sửa lại dịch vụ đơn, validation
 /* ================= CATEGORY VALIDATION ================= */
 const validateCategory = async (category) => {
   const categoryId =
@@ -66,17 +65,81 @@ const getHairServiceById = async (serviceId) => {
 };
 
 
-const getHairServices = async (filters = {}) => {
+const getHairServices = async (filters = {},pagination) => {
   const query = { isDeleted: false, isActive: true };
 
   if (filters.category) {
     const cat = await validateCategory(filters.category);
     query.category = cat._id;
   }
+  if (filters.search) {
+    query.name = {
+      $regex: filters.search,
+      $options: "i"
+    }
+  }
+   if (filters.minPrice || filters.maxPrice) {
+    query.finalPrice = {}
+    if (filters.minPrice) query.finalPrice.$gte = Number(filters.minPrice)
+    if (filters.maxPrice) query.finalPrice.$lte = Number(filters.maxPrice)
+  }
+ if (filters.discountOnly === true) {
+    query["serviceDiscount.isActive"] = true
+  }
+  const sortMap = {
+    priority: { priority: -1, popularityScore: -1 },
+    newest: { createdAt: -1 },
+    price_asc: { finalPrice: 1 },
+    price_desc: { finalPrice: -1 },
+    popular: { popularityScore: -1 }
+  }
+  const sortOption = sortMap[filters.sort] || sortMap.priority
+  const { page, limit, skip } = pagination;
+  const [services, totalItems] = await Promise.all([
+      HairService.find(query)
+        .populate("category", "name")
+        .sort(sortOption)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
 
-  const services = await HairService.find(query)
+      HairService.countDocuments(query)
+    ]);
+
+    return {
+      data: services.map(applyServiceDiscount),
+      pagination: {
+        page,
+        limit,
+        totalItems,
+        totalPages: Math.ceil(totalItems / limit)
+      }
+    };
+};
+//get limit latest hair services
+const getLatestHairServices = async (limit = 5) => {
+  const services = await HairService.find({
+    isDeleted: false,
+    isActive: true
+  })
     .populate("category", "name")
-    .sort({ priority: -1, popularityScore: -1 });
+    .sort({ createdAt: -1 })
+    .limit(limit)
+    .lean();
+
+  return services.map(applyServiceDiscount);
+};
+// get dịch vụ yêu thích nhất
+const getMostFavoritedServices = async (limit = 10) => {
+  const services = await HairService.find({
+    isDeleted: false,
+    isActive: true,
+    favoriteCount: { $gt: 0 }
+  })
+    .sort({ favoriteCount: -1 })
+    .limit(limit)
+    .populate("category", "name")
+    .lean();
 
   return services.map(applyServiceDiscount);
 };
@@ -193,4 +256,6 @@ export const HairSalonService = {
   deleteHairService,
   getHairServices,
   getHairServiceById,
+  getLatestHairServices,
+  getMostFavoritedServices
 };

@@ -27,7 +27,7 @@ const comboServiceSchema = new mongoose.Schema(
       ref: "Category",
       required: true,
       index: true,
-      immutable: true, // ⬅️ MongoDB level: không cho update
+      immutable: true, 
     },
     images: {
       type: [String],

@@ -10,7 +10,7 @@ export const getPublicStaffs = async () => {
         workingStatus: 'active'
     })
         .populate('user', 'name avatar')
-        .select('position experienceYears ratingAverage completedBookings')
+        .select('position experienceYears ratingAverage completedBookings workingStatus status')
         .sort({ ratingAverage: -1 })
 }
 

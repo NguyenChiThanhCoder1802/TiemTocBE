@@ -2,70 +2,38 @@ import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
-    /* ================== CUSTOMER INFO ================== */
     customer: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
-      index: true
+      index: true,
     },
-
-    /* ================== STAFF INFO ================== */
     staff: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Staff",
-      default: null,
+      required: true,
       index: true
     },
-
-    autoAssigned: {
-      type: Boolean,
-      default: false
+    bookingType: {
+      type: String,
+      enum: ["service", "combo"],
+      required: true
     },
-
-    /* ================== SERVICES ================== */
-    services: [
+   services: [
       {
         service: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "HairService",
-          required: true
+          ref: "HairService"
         },
-
-        name: {
-          type: String,
-          required: true
-        },
-
-        images: {
-          type: [String],
-          default: []
-        },
-
-        price: {
+        quantity: {
           type: Number,
-          required: true,
-          min: 0
-        },
-
-        finalPrice: {
-          type: Number,
-          required: true,
-          min: 0
-        },
-
-        duration: {
-          type: Number,
-          required: true // minutes
+          default: 1
         }
       }
     ],
-
-    /* ================== BOOKING TIME ================== */
-    bookingDate: {
-      type: Date,
-      required: true,
-      index: true
+     combo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ComboService"
     },
 
     startTime: {
@@ -76,133 +44,44 @@ const bookingSchema = new mongoose.Schema(
 
     endTime: {
       type: Date,
-      required: true
-    },
-
-    /* ================== BOOKING TYPE ================== */
-    bookingType: {
-      type: String,
-      enum: ["normal", "urgent"],
-      default: "normal",
+      required: true,
       index: true
     },
 
-    urgentFee: {
-      type: Number,
-      default: 0,
-      min: 0
+    duration: {
+      type: Number, // minutes
+      required: true
     },
-
-    /* ================== DISCOUNT INFO ================== */
-    discountCard: {
+    price: {
+      original: Number,
+      final: Number
+    },
+    payment: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "DiscountCard",
-      default: null
+      ref: "Payment",
     },
-
-    discountCode: {
+    paymentMethod: {
+    type: String,
+    enum: ["cash", "vnpay", "momo"],
+    required: true,
+    index: true
+  },
+    paymentStatus: {
       type: String,
-      default: null
+      enum: ["unpaid", "paid", "failed"],
+      default: "unpaid",
+      index: true,
     },
-
-    discountPercent: {
-      type: Number,
-      default: 0,
-      min: 0,
-      max: 100
-    },
-
-    discountAmount: {
-      type: Number,
-      default: 0,
-      min: 0
-    },
-
-    /* ================== PRICE CALCULATION ================== */
-    subTotal: {
-      type: Number,
-      required: true,
-      min: 0
-    },
-
-    totalDiscount: {
-      type: Number,
-      default: 0,
-      min: 0
-    },
-
-    totalPrice: {
-      type: Number,
-      required: true,
-      min: 0
-    },
-
-    /* ================== STATUS ================== */
-    bookingStatus: {
+    status: {
       type: String,
-      enum: [
-        "pending",     // chờ thanh toán / xác nhận
-        "confirmed",   // đã xác nhận
-        "in_progress", // đang làm
-        "completed",   // hoàn thành
-        "cancelled",   // hủy
-        "no_show"      // khách không đến
-      ],
+      enum: ["pending", "confirmed", "completed", "cancelled"],
       default: "pending",
       index: true
     },
 
-    /* ================== CANCELLATION INFO ================== */
-    cancelReason: {
-      type: String,
-      default: null
-    },
-
-    cancelledAt: {
-      type: Date,
-      default: null
-    },
-
-    /* ================== COMPLETION INFO ================== */
-    completedAt: {
-      type: Date,
-      default: null
-    },
-
-    /* ================== APPROVAL INFO ================== */
-    approvedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null
-    },
-
-    approvedAt: {
-      type: Date,
-      default: null
-    },
-
-    /* ================== OTHER INFO ================== */
-    note: {
-      type: String,
-      default: null
-    },
-
-    isDeleted: {
-      type: Boolean,
-      default: false,
-      index: true
-    }
+    note: String,
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
-bookingSchema.index({
-  staff: 1,
-  bookingDate: 1,
-  startTime: 1,
-  endTime: 1,
-  bookingStatus: 1
-});
 
 export default mongoose.model("Booking", bookingSchema);

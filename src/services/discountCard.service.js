@@ -43,13 +43,12 @@ const getValidDiscountByCode = async (code) => {
 
 /* ================= USER APPLY ================= */
 
-const applyDiscount = async ({
-  code,
-  orderTotal,
-  serviceId,
-  userId,
-}) => {
+const applyDiscount = async ({ code, serviceId, userId }) => {
   const discount = await getValidDiscountByCode(code);
+
+  if (!serviceId) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Thiếu serviceId");
+  }
 
   /* ===== USER LIMIT ===== */
   const usedUser = discount.usedByUsers.find(
@@ -63,93 +62,62 @@ const applyDiscount = async ({
     );
   }
 
-  /* ===== TARGET ORDER ===== */
-  if (discount.targetType === "order") {
-    if (orderTotal < discount.minValue) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Đơn hàng chưa đạt giá trị tối thiểu"
-      );
-    }
-
-    const discountAmount = calculateDiscountAmount(
-      orderTotal,
-      discount.discountType,
-      discount.discountValue,
-      discount.maxDiscountAmount
-    );
-
-    return {
-      discountId: discount._id,
-      discountAmount,
-      finalTotal: orderTotal - discountAmount,
-    };
+  /* ===== SERVICE VALIDATION ===== */
+  const service = await HairService.findById(serviceId);
+  if (!service || service.isDeleted) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Dịch vụ không tồn tại");
   }
 
-  /* ===== TARGET SERVICE ===== */
-  if (discount.targetType === "service") {
-    if (!serviceId) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Thiếu serviceId"
-      );
-    }
-
-    const service = await HairService.findById(serviceId);
-    if (!service || service.isDeleted) {
-      throw new ApiError(
-        StatusCodes.NOT_FOUND,
-        "Dịch vụ không tồn tại"
-      );
-    }
-
-    /* ❌ KHÔNG cho áp nếu service đang có serviceDiscount */
-    if (service.serviceDiscount?.isActive) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Dịch vụ đang có chương trình giảm giá khác"
-      );
-    }
-    if (service.isCombo) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Không áp dụng mã giảm giá cho combo"
-      );
-    }
-
-    if (
-      discount.serviceIds.length > 0 &&
-      !discount.serviceIds.some(
-        (id) => id.toString() === serviceId
-      )
-    ) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Mã giảm giá không áp dụng cho dịch vụ này"
-      );
-    }
-
-    if (service.price < discount.minValue) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Dịch vụ chưa đạt giá trị tối thiểu"
-      );
-    }
-
-    const discountAmount = calculateDiscountAmount(
-      service.price,
-      discount.discountType,
-      discount.discountValue,
-      discount.maxDiscountAmount
+  if (service.isCombo) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Không áp dụng mã giảm giá cho combo"
     );
-
-    return {
-      discountId: discount._id,
-      discountAmount,
-      finalPrice: service.price - discountAmount,
-    };
   }
+
+  if (service.serviceDiscount?.isActive) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Dịch vụ đang có chương trình giảm giá khác"
+    );
+  }
+
+  /* ===== CHECK SERVICE SCOPE ===== */
+  if (
+    discount.serviceIds.length > 0 &&
+    !discount.serviceIds.some(
+      (id) => id.toString() === serviceId
+    )
+  ) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Mã giảm giá không áp dụng cho dịch vụ này"
+    );
+  }
+
+  /* ===== MIN VALUE ===== */
+  if (service.price < discount.minValue) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Dịch vụ chưa đạt giá trị tối thiểu"
+    );
+  }
+
+  /* ===== CALCULATE ===== */
+  const discountAmount = calculateDiscountAmount(
+    service.price,
+    discount.discountType,
+    discount.discountValue,
+    discount.maxDiscountAmount
+  );
+
+  return {
+    discountId: discount._id,
+    discountAmount,
+    finalPrice: service.price - discountAmount,
+  };
 };
+
 
 /* ================= ADMIN ================= */
 
@@ -164,7 +132,7 @@ const createDiscount = async (payload) => {
       "Mã giảm giá đã tồn tại"
     );
   }
-
+  
   return DiscountCard.create(payload);
 };
 
@@ -176,7 +144,15 @@ const updateDiscount = async (id, payload) => {
       "Không tìm thấy mã giảm giá"
     );
   }
-
+  if (
+    discount.discountType === 'percent' &&
+    payload.discountValue > 100
+  ) {
+    throw new ApiError(
+      400,
+      'Giảm giá theo % không được vượt quá 100%'
+    )
+  }
   Object.assign(discount, payload);
   return discount.save();
 };

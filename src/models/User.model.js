@@ -32,6 +32,13 @@ const userSchema = new mongoose.Schema(
       enum: ["admin", "customer", "staff"],
       default: "customer",
     },
+    favoriteServices: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "HairService",
+        index: true
+      }
+    ],
     staffRequested: {
       type: Boolean,
       default: false

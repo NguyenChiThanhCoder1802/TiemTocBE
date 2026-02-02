@@ -5,36 +5,18 @@ today.setHours(0, 0, 0, 0)
 
 export const createDiscountSchema = Joi.object({
   name: safeString.required(),
-
   code: safeString.uppercase().required(),
-
   description: safeString.allow("").optional(),
-
-  targetType: Joi.string()
-    .valid("order", "service")
-    .required(),
 
   discountType: Joi.string()
     .valid("percent", "fixed")
     .required(),
 
-  discountValue: Joi.number()
-    .when('discountType', {
-      is: 'percent',
-      then: Joi.number()
-        .min(0)
-        .max(100)
-        .required()
-        .messages({
-          'number.max': 'Giảm giá theo % không được vượt quá 100%',
-        }),
-      otherwise: Joi.number()
-        .min(0)
-        .required()
-        .messages({
-          'number.min': 'Giảm giá cố định không được nhỏ hơn 0',
-        }),
-    }),
+  discountValue: Joi.number().when("discountType", {
+    is: "percent",
+    then: Joi.number().min(0).max(100).required(),
+    otherwise: Joi.number().min(0).required(),
+  }),
 
   maxDiscountAmount: Joi.number().min(0).optional(),
 
@@ -48,22 +30,12 @@ export const createDiscountSchema = Joi.object({
 
   quantity: Joi.number().integer().min(1).required(),
 
-  startDate: Joi.date()
-    .min(today)
-    .required()
-    .messages({
-      'date.min': 'Ngày bắt đầu không được nhỏ hơn hôm nay'
-    }),
-
-  endDate: Joi.date()
-    .greater(Joi.ref('startDate'))
-    .required()
-    .messages({
-      'date.greater': 'Ngày kết thúc phải lớn hơn ngày bắt đầu'
-    }),
+  startDate: Joi.date().min(today).required(),
+  endDate: Joi.date().greater(Joi.ref("startDate")).required(),
 
   isActive: Joi.boolean().default(true),
-}).unknown(false)
+}).unknown(false);
+
 export const updateDiscountSchema = Joi.object({
   name: safeString.optional(),
   description: safeString.allow("").optional(),

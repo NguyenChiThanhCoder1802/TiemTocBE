@@ -3,11 +3,7 @@ import HairService from "../models/HairService.model.js";
 import ApiError from "../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 
-/**
- * Get all categories with optional filters
- * @param {Object} filters - Filter options (isActive, isDeleted, etc.)
- * @returns {Promise<Array>} Array of categories
- */
+
 const getCategories = async (filters = {}) => {
     const query = { isDeleted: false, ...filters };
 
@@ -17,11 +13,7 @@ const getCategories = async (filters = {}) => {
     return categories;
 };
 
-/**
- * Get a single category by ID
- * @param {String} categoryId - Category ID
- * @returns {Promise<Object>} Category object
- */
+
 const getCategoryById = async (categoryId) => {
     const category = await Category.findById(categoryId);
 
@@ -32,11 +24,6 @@ const getCategoryById = async (categoryId) => {
     return category;
 };
 
-/**
- * Get category with associated hair services
- * @param {String} categoryId - Category ID
- * @returns {Promise<Object>} Category with services
- */
 const getCategoryWithServices = async (categoryId) => {
     const category = await getCategoryById(categoryId);
 
@@ -53,11 +40,7 @@ const getCategoryWithServices = async (categoryId) => {
     };
 };
 
-/**
- * Create a new category
- * @param {Object} payload - Category data
- * @returns {Promise<Object>} Created category
- */
+
 const createCategory = async (payload) => {
     // Check if category with same name exists
     const existingCategory = await Category.findOne({
@@ -82,12 +65,7 @@ const createCategory = async (payload) => {
     return category;
 };
 
-/**
- * Update a category
- * @param {String} categoryId - Category ID
- * @param {Object} payload - Update data
- * @returns {Promise<Object>} Updated category
- */
+
 const updateCategory = async (categoryId, payload) => {
     const category = await getCategoryById(categoryId);
 
@@ -122,11 +100,7 @@ const updateCategory = async (categoryId, payload) => {
     return updatedCategory;
 };
 
-/**
- * Soft delete a category
- * @param {String} categoryId - Category ID
- * @returns {Promise<Object>} Deleted category
- */
+
 const deleteCategory = async (categoryId) => {
     const category = await getCategoryById(categoryId);
 
@@ -152,11 +126,6 @@ const deleteCategory = async (categoryId) => {
     return deletedCategory;
 };
 
-/**
- * Restore a deleted category
- * @param {String} categoryId - Category ID
- * @returns {Promise<Object>} Restored category
- */
 const restoreCategory = async (categoryId) => {
     const category = await Category.findById(categoryId);
 
@@ -173,11 +142,6 @@ const restoreCategory = async (categoryId) => {
     return restoredCategory;
 };
 
-/**
- * Get category statistics
- * @param {String} categoryId - Category ID
- * @returns {Promise<Object>} Category stats
- */
 const getCategoryStats = async (categoryId) => {
     const category = await getCategoryById(categoryId);
 
@@ -214,12 +178,6 @@ const getCategoryStats = async (categoryId) => {
     };
 };
 
-/**
- * Change category order
- * @param {String} categoryId - Category ID
- * @param {Number} order - New order value
- * @returns {Promise<Object>} Updated category
- */
 const changeCategoryOrder = async (categoryId, order) => {
     const category = await getCategoryById(categoryId);
 
@@ -232,12 +190,6 @@ const changeCategoryOrder = async (categoryId, order) => {
     return updatedCategory;
 };
 
-/**
- * Bulk update category status
- * @param {Array} categoryIds - Array of category IDs
- * @param {Boolean} isActive - New active status
- * @returns {Promise<Object>} Update result
- */
 const bulkUpdateCategoryStatus = async (categoryIds, isActive) => {
     const result = await Category.updateMany(
         { _id: { $in: categoryIds }, isDeleted: false },
