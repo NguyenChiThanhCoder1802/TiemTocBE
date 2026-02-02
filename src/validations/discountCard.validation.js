@@ -1,5 +1,5 @@
 import Joi from "joi";
-import { safeString } from "../utils/joisafeString.js";
+import { safeString } from "../utils/joiSafeString.js";
 const today = new Date()
 today.setHours(0, 0, 0, 0)
 
