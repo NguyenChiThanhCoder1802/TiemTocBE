@@ -112,10 +112,7 @@ export const createBookingService = async ({
     );
 
     selectedStaff = available[0]._id;
-      const ALLOWED_METHODS = ["cash", "vnpay", "momo"];
-  if (!ALLOWED_METHODS.includes(paymentMethod)) {
-    throw new Error("Phương thức thanh toán không hợp lệ");
-  }
+    
 
   }
 

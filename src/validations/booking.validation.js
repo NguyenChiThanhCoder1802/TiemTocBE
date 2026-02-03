@@ -20,7 +20,7 @@ export const createBookingSchema = Joi.object({
   startTime: Joi.date().greater("now").required(),
    paymentMethod: Joi.string()
     .valid("cash", "vnpay", "momo")
-    .required(),
+    .optional(),
 
   note: Joi.string().allow("")
 });

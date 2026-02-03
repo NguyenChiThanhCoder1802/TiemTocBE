@@ -62,7 +62,7 @@ export const paymentService = {
       vnp_ReturnUrl: env.VNP_RETURN_URL,
       vnp_TxnRef: txnRef,
       vnp_OrderInfo: `Thanh toán booking ${booking._id}`,
-      vnp_OrderType: "billpayment",
+      vnp_OrderType: "orther",
       vnp_Locale: "vn",
       vnp_CurrCode: "VND",
       vnp_Version: "2.1.0",
