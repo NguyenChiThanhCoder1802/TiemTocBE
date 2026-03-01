@@ -1,233 +1,372 @@
 import Booking from "../models/Booking.model.js";
-import Staff from "../models/Staff.model.js";
 import HairService from "../models/HairService.model.js";
 import ComboService from "../models/ComboService.model.js";
-
-/* ================== HELPER ================== */
-// kiểm tra nhân viên có bận trong khung giờ không
-const isStaffBusy = async (staffId, startTime, endTime) => {
-  const conflict = await Booking.findOne({
+import Staff from "../models/Staff.model.js";
+import { discountService } from "./discountCard.service.js";
+import {isServiceDiscountValid } from "../utils/discount.js";
+/* ================= CHECK STAFF ================= */
+export const isStaffBusy = async (staffId, start, end) => {
+  return await Booking.exists({
     staff: staffId,
     status: { $in: ["pending", "confirmed"] },
-    startTime: { $lt: endTime },
-    endTime: { $gt: startTime }
+    startTime: { $lt: end },
+    endTime: { $gt: start }
   });
-  return !!conflict;
 };
-
-/* ================== CREATE BOOKING ================== */
-export const createBookingService = async ({
-  customer,
-  bookingType,
-  services,
-  combo,
-  staff,
+export const checkAllStaffAvailabilityService = async (
   startTime,
-  note,
-  paymentMethod
-}) => {
-  if (!startTime || isNaN(new Date(startTime))) {
-    throw new Error("Thời gian đặt lịch không hợp lệ");
+  duration
+) => {
+  const start = new Date(startTime);
+  const end = new Date(start.getTime() + duration * 60000);
+
+  const staffs = await Staff.find({
+    status: "approved",
+    workingStatus: "active"
+  });
+
+  const availability = {};
+
+  for (const staff of staffs) {
+    const busy = await isStaffBusy(staff._id, start, end);
+    availability[staff._id] = !busy;
   }
 
-  let duration = 0;
-  let price = { original: 0, final: 0 };
+  return availability;
+};
+export const checkStaffAvailabilityService = async (
+  staffId,
+  startTime,
+  duration
+) => {
+  const start = new Date(startTime);
+  const end = new Date(start.getTime() + duration * 60000);
 
-  /* ====== TÍNH DURATION + PRICE ====== */
+  const busy = await isStaffBusy(staffId, start, end);
+
+  return !busy;
+};
+export const findAvailableStaff = async (start, end) => {
+
+  const busyBookings = await Booking.find({
+    status: { $in: ["pending", "confirmed"] },
+    startTime: { $lt: end },
+    endTime: { $gt: start }
+  }).select("staff");
+
+  const busyIds = new Set(
+    busyBookings.map(b => b.staff.toString())
+  );
+
+  const staff = await Staff.findOne({
+     status: "approved",          // đã được duyệt
+    workingStatus: "active", // đang làm việc
+    _id: { $nin: [...busyIds] }
+  });
+
+  return staff;
+};
+/* ================= CREATE CASH BOOKING ================= */
+export const createBookingService = async (data, customerId, paymentMethod) => {
+  const { staff, bookingType, services, combo, startTime, note, discountCode } = data;
+
+  let totalDuration = 0;
+  let originalPrice = 0;
+  let afterServiceDiscount = 0;
+
+  let servicesSnapshot = [];  
+  let comboSnapshot = null;
+  let discountDoc = null;
+  let discountSnapshot = null;
+  let discountAmount = 0;
+  /* ===== SERVICE MODE ===== */
+  if (bookingType === "service") {
+    const ids = services.map(s => s.service);
+
+    const serviceDocs = await HairService.find({
+      _id: { $in: ids },
+      isActive: true,
+      isDeleted: false
+    });
+
+    if (serviceDocs.length !== ids.length)
+      throw new Error("Có dịch vụ không hợp lệ");
+
+    for (const service of serviceDocs) {
+      totalDuration += service.duration;
+      originalPrice += service.price;
+      const isDiscountValid = isServiceDiscountValid(service.serviceDiscount); 
+       const priceAfterDiscount = isDiscountValid
+        ? Math.round(
+            service.price *
+              (1 - service.serviceDiscount.percent / 100)
+          )
+        : service.price;
+         afterServiceDiscount += priceAfterDiscount;
+      servicesSnapshot.push({
+        service: service._id,
+        nameSnapshot: service.name,
+        originalPriceSnapshot: service.price,
+        serviceDiscountPercent: isDiscountValid ? service.serviceDiscount.percent : 0,
+        priceAfterServiceDiscount: priceAfterDiscount,
+        durationSnapshot: service.duration,
+        imageSnapshot: service.images
+      });
+    }
+  }
+
+  /* ===== COMBO MODE ===== */
+  if (bookingType === "combo") {
+    const comboDoc = await ComboService.findById(combo);
+
+    if (!comboDoc)
+      throw new Error("Combo không tồn tại");
+
+    totalDuration = comboDoc.duration;
+    originalPrice = comboDoc.pricing.originalPrice;
+     afterServiceDiscount = comboDoc.pricing.comboPrice;
+
+    comboSnapshot = {
+      name: comboDoc.name,
+      originalPrice,
+      comboPrice: afterServiceDiscount,
+      imageSnapshot: comboDoc.images || [],
+    };
+  }
+  
+
+  let finalPrice = afterServiceDiscount;
+
+if (discountCode) {
+  const discountResult =
+    await discountService.applyDiscountToAmount({
+      code: discountCode,
+      amount: afterServiceDiscount,
+      userId: customerId,
+      serviceIds:
+        bookingType === "service"
+          ? servicesSnapshot.map(s =>
+              s.service.toString()
+            )
+          : []
+    });
+
+  if (discountResult) {
+    discountDoc = discountResult.discountDoc;
+    discountSnapshot =
+      discountResult.discountSnapshot;
+    discountAmount =
+      discountResult.discountAmount;
+    finalPrice =
+      discountResult.finalAmount;
+  }
+}
+  /* ===== TIME ===== */
+  const start = new Date(startTime);
+  const end = new Date(start.getTime() + totalDuration * 60000);
+
+  /* ===== CHECK STAFF ===== */
+  let assignedStaff = staff;
+
+// Nếu user không chọn staff → auto assign
+if (!assignedStaff) {
+  const availableStaff = await findAvailableStaff(start, end);
+
+  if (!availableStaff) {
+    throw new Error("Hiện tại không có nhân viên rảnh");
+  }
+
+  assignedStaff = availableStaff._id;
+}
+
+// Nếu có chọn staff → check lại
+if (assignedStaff) {
+  const busy = await isStaffBusy(assignedStaff, start, end);
+
+  if (busy) {
+    throw new Error("Staff đã có lịch trong thời gian này");
+  }
+}
+  /* ===== CREATE BOOKING ===== */
+  const booking = await Booking.create({
+    customer: customerId,
+    staff:assignedStaff,
+    bookingType,
+    services: servicesSnapshot,
+    combo: bookingType === "combo" ? combo : null,
+    comboSnapshot,
+    startTime: start,
+    endTime: end,
+    duration: totalDuration,
+    price: {
+      original: originalPrice,
+      afterServiceDiscount,
+      discountAmount,
+      final: finalPrice
+    },
+    discountCard: discountDoc?._id || null,
+    discount: discountSnapshot,
+    paymentMethod: paymentMethod,
+    status: "pending",
+    note
+  });
+
+  return booking;
+};
+export const previewBookingService = async (data, userId) => {
+  const { bookingType, services, combo, discountCode } = data;
+  let totalDuration = 0;
+let originalPrice = 0;
+  let afterServiceDiscount = 0;
+  let serviceIds = [];
+  
   if (bookingType === "service") {
     if (!services || services.length === 0) {
-      throw new Error("Vui lòng chọn ít nhất 1 dịch vụ");
+      throw new Error("Services are required");
     }
 
-    const serviceIds = services.map(s => s.service);
-    const serviceDocs = await HairService.find({
-      _id: { $in: serviceIds }
-    });
+    
+  // 🔹 convert về mảng id
+  const ids = services.map(s => s.service);
+    serviceIds = ids;
+  const serviceDocs = await HairService.find({
+    _id: { $in: ids },
+    isActive: true,
+    isDeleted: false
+  });
 
-    if (serviceDocs.length !== serviceIds.length) {
-      throw new Error("Một hoặc nhiều dịch vụ không tồn tại");
+  if (serviceDocs.length !== ids.length) {
+    throw new Error("Some services not found");
+  }
+
+  
+
+  for (const service of serviceDocs) {
+    totalDuration += service.duration;
+    originalPrice += service.price;
+
+    const isDiscountValid = isServiceDiscountValid(service.serviceDiscount);
+
+     const priceAfterDiscount = isDiscountValid
+        ? Math.round(
+            service.price *
+            (1 - service.serviceDiscount.percent / 100)
+          )
+        : service.price;
+
+        afterServiceDiscount += priceAfterDiscount;
+      }
     }
-
-    serviceDocs.forEach(s => {
-      duration += s.duration;
-      price.original += s.price;
-      price.final += s.finalPrice ?? s.price;
-    });
-  } else if (bookingType === "combo") {
-    if (!combo) {
-      throw new Error("Vui lòng chọn combo");
-    }
-
+      /* ===== COMBO MODE ===== */
+  if (bookingType === "combo") {
     const comboDoc = await ComboService.findById(combo);
+
     if (!comboDoc) {
       throw new Error("Combo không tồn tại");
     }
 
-    duration = comboDoc.duration;
-    price.original = comboDoc.pricing.originalPrice;
-    price.final = comboDoc.pricing.comboPrice;
-  } else {
-    throw new Error("Loại booking không hợp lệ");
+    totalDuration = comboDoc.duration;
+    originalPrice = comboDoc.pricing.originalPrice;
+    afterServiceDiscount = comboDoc.pricing.comboPrice;
+  }
+  let discountAmount = 0;
+  let finalPrice = afterServiceDiscount;
+
+  if (discountCode) {
+    const discountResult =
+      await discountService.applyDiscountToAmount({
+        code: discountCode,
+        amount: afterServiceDiscount,
+        userId,
+        serviceIds
+      });
+
+    if (discountResult) {
+      discountAmount = discountResult.discountAmount;
+      finalPrice = discountResult.finalAmount;
+    }
   }
 
-  const endTime = new Date(
-    new Date(startTime).getTime() + duration * 60000
-  );
-
-  /* ====== CHỌN NHÂN VIÊN ====== */
-  let selectedStaff;
-
-  if (staff) {
-    const busy = await isStaffBusy(staff, startTime, endTime);
-    if (busy) {
-      throw new Error("Nhân viên đang bận trong khung giờ này");
+  return {
+    totalDuration,
+    price: {
+      original: originalPrice,
+      afterServiceDiscount,
+      discountAmount,
+      final: finalPrice
     }
-    selectedStaff = staff;
-  } else {
-    const staffs = await Staff.find({
-      status: "approved",
-      workingStatus: "active",
-      position: "stylist"
-    });
-
-    const available = (
-      await Promise.all(
-        staffs.map(async s => {
-          const busy = await isStaffBusy(s._id, startTime, endTime);
-          return busy ? null : s;
-        })
-      )
-    ).filter(Boolean);
-
-    if (available.length === 0) {
-      throw new Error("Không có nhân viên rảnh, vui lòng chọn giờ khác");
-    }
-
-    // ưu tiên: ít booking → rating cao → nhiều kinh nghiệm
-    available.sort(
-      (a, b) =>
-        a.completedBookings - b.completedBookings ||
-        b.ratingAverage - a.ratingAverage ||
-        b.experienceYears - a.experienceYears
-    );
-
-    selectedStaff = available[0]._id;
-    
-
-  }
-
-  /* ====== TẠO BOOKING ====== */
-  return Booking.create({
-    customer,
-    staff: selectedStaff,
-    bookingType,
-    services,
-    combo,
-    startTime,
-    endTime,
-    duration,
-    price,
-    note,
-    paymentMethod,
-    paymentStatus: "unpaid",
-    status: "pending"
-    });
-};
-const ALLOWED_STATUS = [
-  "pending",
-  "confirmed",
-  "completed",
-  "cancelled"
-];
-
-/* ================== GET MY BOOKINGS ================== */
-export const getMyBookingsService = async (customerId, status,pagination) => {
- if (!status || !ALLOWED_STATUS.includes(status)) {
-      throw new Error("Trạng thái booking không hợp lệ");
-    }
-   const filter = {
-    customer: customerId,
-    status
   };
-  const [data, total] = await Promise.all([
-    Booking.find(filter)
-      .populate({
-        path: "staff",
-        select: "position user",
-        populate: {
-          path: "user",
-          select: "name email avatar"
-        }
-      })
-      .populate("services.service", "name price finalPrice duration")
-      .populate("combo", "name pricing duration")
-      .sort({ startTime: -1 })
-      .skip(pagination.skip)
-      .limit(pagination.limit),
+};
+export const getMyBookingsService = async (
+  userId,
+  page,
+  limit,
+  status
+) => {
+  const skip = (page - 1) * limit;
+  const query = { customer: userId };
 
-    Booking.countDocuments(filter)
+  if (status) {
+    query.status = status;
+  }
+  const [bookings, total] = await Promise.all([
+    Booking.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("staff")
+      .populate("combo")
+      .populate({path: "payment", select: "method status provider" }),
+
+    Booking.countDocuments(query)
   ]);
-   return {
-    data,
-    pagination: {
-      page: pagination.page,
-      limit: pagination.limit,
+
+  return {
+    data: bookings,
+     pagination: {
       total,
-      totalPages: Math.ceil(total / pagination.limit)
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
     }
   };
 };
-export const getBookingDetailService = async (bookingId, customerId) => {
-  const booking = await Booking.findOne({
-    _id: bookingId,
-    customer: customerId
-  })
-    .populate({
-      path: "customer",
-      select: "name email phone"
-    })
+/* ================= GET BOOKING DETAIL ================= */
+export const getBookingByIdService = async (bookingId) => {
+  const booking = await Booking.findById(bookingId)
+    .populate({ path: "customer", select: "name email avatar" })
     .populate({
       path: "staff",
-      select: "position user",
-      populate: {
-        path: "user",
-        select: "name email avatar"
-      }
+      populate: { path: "user" }
     })
+    .populate("combo")
     .populate({
       path: "services.service",
-      select: "name price finalPrice duration"
-    })
-    .populate({
-      path: "combo",
-      select: "name pricing duration"
-    })
-    .populate({
-      path: "payment"
+      model: "HairService"
     });
 
   if (!booking) {
-    throw new Error("Không tìm thấy booking");
+    throw new Error("Booking không tồn tại");
   }
 
   return booking;
 };
-export const cancelBookingService = async (bookingId, customerId) => {
+export const cancelBookingService = async (
+  bookingId,
+  userId
+) => {
   const booking = await Booking.findOne({
     _id: bookingId,
-    customer: customerId
+    customer: userId
   });
 
-  if (!booking) {
-    throw new Error("Không tìm thấy booking");
-  }
+  if (!booking)
+    throw new Error("Booking không tồn tại");
 
-  if (booking.status !== "pending") {
-    throw new Error("Chỉ có thể hủy booking khi đang ở trạng thái chờ xác nhận");
-  }
+  if (booking.status === "cancelled")
+    throw new Error("Booking đã bị hủy");
 
   booking.status = "cancelled";
-
   await booking.save();
 
   return booking;

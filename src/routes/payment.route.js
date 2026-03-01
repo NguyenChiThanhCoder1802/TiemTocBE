@@ -1,7 +1,7 @@
 import express from "express";
 import {
-  createBookingPayment,
-  handleBookingVnpayReturn,
+  createPayment,
+  handleVnpayReturn,
   getMyPayments,
   getBookingRevenue,
 } from "../controllers/payment.controller.js";
@@ -12,11 +12,17 @@ const Router = express.Router();
 
 /* ================= USER ================= */
 
-// Tạo thanh toán booking
-Router.post("/booking/vnpay", authMiddleware, createBookingPayment);
+Router.post(
+  "/vnpay",
+  authMiddleware,
+  createPayment
+);
 
-// VNPay return URL
-Router.get("/booking/vnpay-return", handleBookingVnpayReturn);
+Router.get(
+  "/vnpay-return",
+  handleVnpayReturn
+);
+
 
 // User xem lịch sử thanh toán
 Router.get("/my", authMiddleware, getMyPayments);

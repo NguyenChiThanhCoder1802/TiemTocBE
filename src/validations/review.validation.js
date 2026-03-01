@@ -4,6 +4,7 @@ import { safeString } from "../utils/joiSafeString.js";
 export const createReviewSchema = Joi.object({
   service: Joi.string().optional().allow(null),
   staff: Joi.string().optional().allow(null),
+  images: Joi.array().items(Joi.string()).optional(),
 
   rating: Joi.number().min(1).max(5).required(),
 

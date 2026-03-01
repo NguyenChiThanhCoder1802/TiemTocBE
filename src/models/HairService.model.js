@@ -47,11 +47,7 @@ const hairServiceSchema = new mongoose.Schema(
       min: 0,
     },
 
-    finalPrice: {
-      type: Number,
-      min: 0,
-    },
-
+  
     duration: {
       type: Number, // minutes
       required: true,
@@ -70,11 +66,7 @@ const hairServiceSchema = new mongoose.Schema(
       startAt: Date,
       endAt: Date,
 
-      isActive: {
-        type: Boolean,
-        default: false,
-        index: true,
-      },
+    
     },
 
     /* ================== STATS ================== */

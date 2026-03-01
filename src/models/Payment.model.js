@@ -5,7 +5,7 @@ const paymentSchema = new mongoose.Schema(
     booking: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Booking",
-      required: true,
+     default: null,
       index: true,
     },
     user: {
@@ -15,17 +15,17 @@ const paymentSchema = new mongoose.Schema(
       index: true,
     },
     method: {
-    type: String,
-    enum: ["vnpay", "momo", "cash"],
-    required: true,
-    index: true,
+      type: String,
+      enum: ["vnpay", "momo", "cash"],
+      required: true,
+      index: true,
     },
     provider: {
-      type: String, // vnpay | momo
-    },
+      type: String,
+      enum: ["vnpay", "momo"]},
 
 
-    orderId: { type: String, required: true },
+    orderId: { type: String, required: false },
     txnRef: { type: String, required: true, unique: true },
     amount: { type: Number, required: true },
     description: { type: String },

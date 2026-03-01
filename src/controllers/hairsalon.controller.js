@@ -43,12 +43,28 @@ const getLatestHairServices = async (req, res, next) => {
 
  const getHairServiceById = async (req, res, next) => {
     try {
-        const hairService = await HairSalonService.getHairServiceById(req.params.id);
-        res.status(StatusCodes.OK).json({message: "Hair service retrieved successfully", data: hairService});
+        const {service, relatedServices} = await HairSalonService.getHairServiceById(req.params.id);
+        res.status(StatusCodes.OK).json({message: "Hair service retrieved successfully", data: service, relatedServices});
     } catch (err) {
         next(err);
     }
 };
+export const getServiceBySlug = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    const { service, relatedServices } =
+      await HairSalonService.getHairServiceBySlug(slug);
+
+    res.status(200).json({
+      message: "Hair service retrieved successfully",
+      data: service,
+      relatedServices
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
  const createHairService = async (req, res, next) => {
     try {
         const hairService = await HairSalonService.createHairService(req.body);
@@ -89,14 +105,55 @@ const getMostFavoritedServices = async (req, res, next) => {
       next(err);
     }
   };
+const getFeaturedHairServices = async (req, res, next) => {
+  try {
+    const limit = Number(req.query.limit) || 8;
 
+    const services =
+      await HairSalonService.getFeaturedHairServices(limit);
+
+    res.status(StatusCodes.OK).json({
+      success: true,
+      data: services
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+const getAvailableServices = async (req, res, next) => {
+  try {
+    const { startTime, staffId } = req.query;
+
+    if (!startTime) {
+      return res.status(400).json({
+        message: "startTime là bắt buộc"
+      });
+    }
+
+    const services =
+      await HairSalonService.getAvailableServices({
+        startTime,
+        staffId
+      });
+
+    res.status(200).json({
+      success: true,
+      data: services
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 export const HairSalonController = {
     getHairServices,
     getHairServiceById,
+    getServiceBySlug,
     createHairService,
     updateHairService,
     deleteHairService,
     getLatestHairServices,
-    getMostFavoritedServices
+    getMostFavoritedServices,
+    getFeaturedHairServices,
+    getAvailableServices
 
 };

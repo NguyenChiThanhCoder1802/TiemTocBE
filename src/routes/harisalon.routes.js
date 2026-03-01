@@ -9,10 +9,17 @@ import { paginationMiddleware } from "../middlewares/pagination.middleware.js";
 const Router = express.Router();
 
 Router.get("/", paginationMiddleware,HairSalonController.getHairServices);
+Router.get("/featured",HairSalonController.getFeaturedHairServices);
 Router.get("/latest", HairSalonController.getLatestHairServices);
 Router.get("/popular/favorites", HairSalonController.getMostFavoritedServices);
-
+Router.get("/slug/:slug", HairSalonController.getServiceBySlug);
+Router.get(
+  "/available",
+  authMiddleware,
+  HairSalonController.getAvailableServices
+);
 Router.get("/:id", HairSalonController.getHairServiceById);
+
 Router.post("/", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(createHairServiceSchema), HairSalonController.createHairService);
 Router.put("/:id", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(updateHairServiceSchema), HairSalonController.updateHairService);
 Router.delete("/:id", authMiddleware, verifyAdmin, HairSalonController.deleteHairService);

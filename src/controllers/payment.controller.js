@@ -4,20 +4,17 @@ import { env } from "../config/environment.js";
  * TẠO URL THANH TOÁN BOOKING (USER)
  * POST /api/payments/booking/vnpay
  * ===================================================== */
-export const createBookingPayment = async (req, res) => {
+export const createPayment = async (req, res) => {
   try {
-    const result = await paymentService.createBookingPaymentUrl(req);
+    const { paymentUrl } =
+      await paymentService.createBookingPaymentUrl(req);
 
     return res.status(200).json({
-      data: {
-    paymentUrl: result.paymentUrl,
-    orderId: result.orderId,
-    txnRef: result.txnRef,
-  }
+      data: { paymentUrl }
     });
   } catch (error) {
     return res.status(400).json({
-      message: error.message || "Không thể tạo thanh toán",
+      message: error.message || "Không thể tạo thanh toán"
     });
   }
 };
@@ -26,15 +23,17 @@ export const createBookingPayment = async (req, res) => {
  * VNPAY RETURN URL
  * GET /api/payments/booking/vnpay-return
  * ===================================================== */
-export const handleBookingVnpayReturn = async (req, res) => {
+export const handleVnpayReturn = async (req, res) => {
   try {
-    const result = await paymentService.handleBookingReturnUrl(req.query);
+    const result =
+      await paymentService.handleBookingReturnUrl(req.query);
 
-    return res.redirect(
-      `${env.FE_URL}/payment-result?status=${
-        result.isSuccess ? "success" : "failed"
-      }&bookingId=${result.bookingId}`
-    );
+    const redirectUrl =
+      `${env.FE_URL}/payment-result` +
+      `?status=${result.isSuccess ? "success" : "failed"}` +
+      (result.bookingId ? `&bookingId=${result.bookingId}` : "");
+
+    return res.redirect(redirectUrl);
   } catch (error) {
     return res.redirect(
       `${env.FE_URL}/payment-result?status=error`

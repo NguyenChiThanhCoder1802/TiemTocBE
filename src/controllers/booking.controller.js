@@ -1,78 +1,124 @@
-import {
-  createBookingService,
-  getMyBookingsService,getBookingDetailService,cancelBookingService
-} from "../services/booking.service.js";
-import { StatusCodes } from "http-status-codes";
-/* ================== CREATE BOOKING ================== */
-export const createBooking = async (req, res) => {
+import { createBookingSchema } from "../validations/booking.validation.js";
+import { createBookingService, checkStaffAvailabilityService,getMyBookingsService,getBookingByIdService,cancelBookingService,previewBookingService } from "../services/booking.service.js";
+export const checkStaffAvailability = async (req, res) => {
   try {
-    const booking = await createBookingService({
-      customer: req.user.id,
-      ...req.body,
-      paymentStatus: "unpaid",
-      status: "pending"
-    });
+    const { staffId, startTime, duration } = req.query;
 
-    res.status(201).json({
-      data: booking
-    });
-  } catch (err) {
-    res.status(400).json({
-      message: err.message
+    const available = await checkStaffAvailabilityService(
+      staffId,
+      startTime,
+      Number(duration)
+    );
+
+    res.json({ available });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
     });
   }
 };
-
-/* ================== GET MY BOOKINGS ================== */
-export const getMyBookings = async (req, res, next) => {
+export const createBooking = async (req, res, next) => {
   try {
-    const { status } = req.query;
+    const { error, value } =
+      createBookingSchema.validate(req.body);
 
-    const result = await getMyBookingsService(
-      req.user.id,
-      status,
-      req.pagination
+    if (error)
+      throw new Error(error.message);
+
+    const booking = await createBookingService(
+      value,
+      req.user.id
     );
 
-    res.status(StatusCodes.OK).json({
-      message: "Bookings retrieved successfully",
-      data: result.data,
-      pagination: result.pagination
+    res.status(201).json({
+      message: "Đặt lịch thành công (Thanh toán tại salon)",
+      data: booking
     });
+
   } catch (err) {
     next(err);
   }
 };
-export const getBookingDetail = async (req, res) => {
+
+export const previewBooking = async (req, res, next) => {
   try {
-    const booking = await getBookingDetailService(
-      req.params.id,
-      req.user.id
-    );
+    const result = await previewBookingService(req.body, req.user.id);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+};
+export const getBookingById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const booking = await getBookingByIdService(id);
 
     res.json({
+      success: true,
       data: booking
     });
-  } catch (err) {
+
+  } catch (error) {
     res.status(404).json({
-      message: err.message
+      message: error.message
+    });
+  }
+};
+export const checkAllStaffAvailability = async (req, res) => {
+  try {
+    const { startTime, duration } = req.query;
+
+    const availability =
+      await checkAllStaffAvailabilityService(
+        startTime,
+        Number(duration)
+      );
+
+    res.json({ availability });
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+export const getMyBookings = async (req, res) => {
+  try {
+    const { page = 1, limit = 10 } = req.pagination;
+     const { status } = req.query;
+    const result = await getMyBookingsService(
+      req.user.id,
+      Number(page),
+      Number(limit),
+      status
+    );
+
+    res.json(result);
+
+  } catch (error) {
+    res.status(500).json({
+      message: error.message
     });
   }
 };
 export const cancelBooking = async (req, res) => {
   try {
-    const booking = await cancelBookingService(
-      req.params.id,
-      req.user.id
-    );
+    const booking =
+      await cancelBookingService(
+        req.params.id,
+        req.user.id
+      );
 
     res.json({
-      message: "Huỷ booking thành công",
+      message: "Hủy lịch thành công",
       data: booking
     });
-  } catch (err) {
+
+  } catch (error) {
     res.status(400).json({
-      message: err.message
+      message: error.message
     });
   }
 };

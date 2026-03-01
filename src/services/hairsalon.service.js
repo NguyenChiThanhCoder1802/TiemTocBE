@@ -14,6 +14,8 @@ import {
 } from "../domains/hairService/hairServiceCalculator.js";
 import { makeSlug } from "../utils/slug.js";
 import crypto from "crypto";
+import { isStaffBusy } from "./booking.service.js";
+import Staff from "../models/Staff.model.js";
 /* ================= CATEGORY VALIDATION ================= */
 const validateCategory = async (category) => {
   const categoryId =
@@ -38,6 +40,32 @@ const validateCategory = async (category) => {
 
   return found;
 };
+// lấy chi tiết theo slug
+const getHairServiceBySlug = async (slug) => {
+  const service = await HairService.findOne({
+    slug,
+    isDeleted: false,
+    isActive: true
+  })
+    .populate("category", "name")
+    .lean();
+
+  if (!service) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Service not found");
+  }
+
+  HairService.updateOne(
+    { _id: service._id },
+    { $inc: { viewCount: 1 } }
+  ).exec();
+
+  const relatedServices = await getRelatedHairServices(service);
+
+  return {
+    service: applyServiceDiscount(service),
+    relatedServices
+  };
+};
 
 /* ================= GET ================= */
 const getHairServiceById = async (serviceId) => {
@@ -60,8 +88,30 @@ const getHairServiceById = async (serviceId) => {
     { _id: serviceId },
     { $inc: { viewCount: 1 } }
   ).exec();
+   const relatedServices = await getRelatedHairServices(service);
+  return {service: applyServiceDiscount(service), relatedServices};
+};
+// gợi ý dịch vụ 
+const getRelatedHairServices = async (service, limit = 6) => {
+  const relatedQuery = {
+    _id: { $ne: service._id },
+    isDeleted: false,
+    isActive: true,
+    category: service.category?._id || service.category,
+  };
 
-  return applyServiceDiscount(service);
+  // Ưu tiên theo tags
+  if (service.tags && service.tags.length > 0) {
+    relatedQuery.tags = { $in: service.tags };
+  }
+
+  const services = await HairService.find(relatedQuery)
+    .sort({ priority: -1, popularityScore: -1 })
+    .limit(limit)
+    .populate("category", "name")
+    .lean();
+
+  return services.map(applyServiceDiscount);
 };
 
 
@@ -130,7 +180,7 @@ const getLatestHairServices = async (limit = 5) => {
   return services.map(applyServiceDiscount);
 };
 // get dịch vụ yêu thích nhất
-const getMostFavoritedServices = async (limit = 10) => {
+const getMostFavoritedServices = async (limit = 2) => {
   const services = await HairService.find({
     isDeleted: false,
     isActive: true,
@@ -143,7 +193,95 @@ const getMostFavoritedServices = async (limit = 10) => {
 
   return services.map(applyServiceDiscount);
 };
+// get dịch vụ nổi bật
+// ================= FEATURED SERVICES =================
+const getFeaturedHairServices = async (limit = 8) => {
+  const services = await HairService.find({
+    isDeleted: false,
+    isActive: true,
+    isFeatured: true
+  })
+    .populate("category", "name")
+    .sort({
+      priority: -1,
+      popularityScore: -1,
+      ratingAverage: -1
+    })
+    .limit(limit)
+    .lean();
 
+  return services.map(applyServiceDiscount);
+};
+const getAvailableServices = async ({
+  startTime,
+  staffId
+}) => {
+  const start = new Date(startTime);
+
+  // Lấy tất cả service đang hoạt động
+  const services = await HairService.find({
+    isDeleted: false,
+    isActive: true
+  }).lean();
+
+  const availableServices = [];
+
+  for (const service of services) {
+    const end = new Date(
+      start.getTime() + service.duration * 60000
+    );
+
+    /* =============================
+       CASE 1: USER CHỌN STAFF
+    ==============================*/
+    if (staffId) {
+      const busy = await isStaffBusy(
+        staffId,
+        start,
+        end
+      );
+
+      if (!busy) {
+        availableServices.push(
+          applyServiceDiscount(service)
+        );
+      }
+    }
+
+    /* =============================
+       CASE 2: AUTO ASSIGN STAFF
+    ==============================*/
+    else {
+      const staffs = await Staff.find({
+        status: "approved",
+        workingStatus: "active"
+      }).select("_id");
+
+      let hasAvailableStaff = false;
+
+      for (const staff of staffs) {
+        const busy = await isStaffBusy(
+          staff._id,
+          start,
+          end
+        );
+
+        if (!busy) {
+          hasAvailableStaff = true;
+          break;
+        }
+      }
+
+      if (hasAvailableStaff) {
+        availableServices.push(
+          applyServiceDiscount(service)
+        );
+      }
+    }
+  }
+
+  return availableServices;
+};
 /* ================= CREATE ================= */
 const createHairService = async (payload) => {
   const category = await validateCategory(payload.category);
@@ -170,12 +308,12 @@ const createHairService = async (payload) => {
   if (!Array.isArray(payload.images)) payload.images = [];
 
 
-  const discountResult = await calculateServiceDiscount(payload);
-  payload.finalPrice = discountResult.finalPrice;
-  payload.serviceDiscount = {
-    ...payload.serviceDiscount,
-    isActive: discountResult.isActive,
-  };
+  // const discountResult = await calculateServiceDiscount(payload);
+  // payload.finalPrice = discountResult.finalPrice;
+  // payload.serviceDiscount = {
+  //   ...payload.serviceDiscount,
+  //   isActive: discountResult.isActive,
+  // };
 
   return await HairService.create(payload);
 };
@@ -221,14 +359,7 @@ const updateHairService = async (serviceId, payload) => {
 
   Object.assign(service, payload);
 
-  const discountResult = await calculateServiceDiscount({
-    price: service.price,
-    serviceDiscount: service.serviceDiscount,
-  });
-  service.finalPrice = discountResult.finalPrice;
-  if (service.serviceDiscount) {
-    service.serviceDiscount.isActive = discountResult.isActive;
-  }
+ 
 
   service.conversionRate = calculateConversionRate(service);
   service.popularityScore = calculatePopularityScore(service);
@@ -256,6 +387,9 @@ export const HairSalonService = {
   deleteHairService,
   getHairServices,
   getHairServiceById,
+  getHairServiceBySlug,
   getLatestHairServices,
-  getMostFavoritedServices
+  getMostFavoritedServices,
+  getFeaturedHairServices,
+  getAvailableServices
 };

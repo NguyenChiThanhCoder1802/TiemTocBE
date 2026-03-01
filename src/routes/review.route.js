@@ -34,7 +34,11 @@ Router.get(
   "/staff/:staffId",
   ReviewController.getReviewsByStaff
 );
-
+Router.get(
+  "/me",
+  authMiddleware,
+  ReviewController.getMyReviews
+);
 /**
  * Cập nhật review
  */

@@ -3,7 +3,7 @@ import  {discountService} from "../services/discountCard.service.js";
 
  const applyDiscount = async (req, res, next) => {
   try {
-    const result = await discountService.applyDiscount({
+    const result = await discountService.applyDiscountToAmount({
       ...req.body,
       userId: req.user.id,
     });

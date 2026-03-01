@@ -43,12 +43,15 @@ const getValidDiscountByCode = async (code) => {
 
 /* ================= USER APPLY ================= */
 
-const applyDiscount = async ({ code, serviceId, userId }) => {
-  const discount = await getValidDiscountByCode(code);
+const applyDiscountToAmount = async ({
+  code,
+  amount,
+  userId,
+  serviceIds = []
+}) => {
+  if (!code) return null;
 
-  if (!serviceId) {
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Thiếu serviceId");
-  }
+  const discount = await getValidDiscountByCode(code);
 
   /* ===== USER LIMIT ===== */
   const usedUser = discount.usedByUsers.find(
@@ -62,31 +65,11 @@ const applyDiscount = async ({ code, serviceId, userId }) => {
     );
   }
 
-  /* ===== SERVICE VALIDATION ===== */
-  const service = await HairService.findById(serviceId);
-  if (!service || service.isDeleted) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Dịch vụ không tồn tại");
-  }
-
-  if (service.isCombo) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      "Không áp dụng mã giảm giá cho combo"
-    );
-  }
-
-  if (service.serviceDiscount?.isActive) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      "Dịch vụ đang có chương trình giảm giá khác"
-    );
-  }
-
   /* ===== CHECK SERVICE SCOPE ===== */
   if (
     discount.serviceIds.length > 0 &&
-    !discount.serviceIds.some(
-      (id) => id.toString() === serviceId
+    !discount.serviceIds.some((id) =>
+      serviceIds.includes(id.toString())
     )
   ) {
     throw new ApiError(
@@ -96,28 +79,34 @@ const applyDiscount = async ({ code, serviceId, userId }) => {
   }
 
   /* ===== MIN VALUE ===== */
-  if (service.price < discount.minValue) {
+  if (amount < discount.minValue) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      "Dịch vụ chưa đạt giá trị tối thiểu"
+      "Chưa đạt giá trị tối thiểu để áp mã"
     );
   }
 
   /* ===== CALCULATE ===== */
   const discountAmount = calculateDiscountAmount(
-    service.price,
+    amount,
     discount.discountType,
     discount.discountValue,
     discount.maxDiscountAmount
   );
 
   return {
-    discountId: discount._id,
+    discountDoc: discount,
+    discountSnapshot: {
+      code: discount.code,
+      discountType: discount.discountType,
+      discountValue: discount.discountValue,
+      maxDiscountAmount: discount.maxDiscountAmount,
+      discountAmount
+    },
     discountAmount,
-    finalPrice: service.price - discountAmount,
+    finalAmount: amount - discountAmount
   };
 };
-
 
 /* ================= ADMIN ================= */
 
@@ -177,7 +166,7 @@ const getAllDiscounts = async () => {
 };
 
 export const discountService = {
-  applyDiscount,
+  applyDiscountToAmount,
   createDiscount,
   updateDiscount,
   deleteDiscount,

@@ -41,6 +41,18 @@ const getReviewsByStaff = async (req, res, next) => {
     next(err);
   }
 };
+const getMyReviews = async (req, res, next) => {
+  try {
+    const reviews = await ReviewService.getMyReviews(req.user.id);
+
+    res.json({
+      data: reviews,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 const updateReview = async (req, res, next) => {
   try {
@@ -77,6 +89,7 @@ const deleteReview = async (req, res, next) => {
 export const ReviewController = {
   createReview,
   getReviewsByService,
+  getMyReviews,
   updateReview,
   deleteReview,
   getReviewsByStaff

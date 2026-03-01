@@ -1,11 +1,20 @@
 import Joi from "joi";
 
 export const createBookingSchema = Joi.object({
-  bookingType: Joi.string().valid("service", "combo").required(),
+  staff: Joi.string(),
+
+  bookingType: Joi.string()
+    .valid("service", "combo")
+    .required(),
 
   services: Joi.when("bookingType", {
     is: "service",
-    then: Joi.array().min(1).required(),
+    then: Joi.array().items(
+      Joi.object({
+        service: Joi.string().required(),
+      
+      })
+    ).min(1).required(),
     otherwise: Joi.forbidden()
   }),
 
@@ -15,12 +24,15 @@ export const createBookingSchema = Joi.object({
     otherwise: Joi.forbidden()
   }),
 
-  staff: Joi.string().optional(),
+  startTime: Joi.date().required(),
 
-  startTime: Joi.date().greater("now").required(),
-   paymentMethod: Joi.string()
+  paymentMethod: Joi.string()
     .valid("cash", "vnpay", "momo")
-    .optional(),
-
+    .required(),
+  discountCode: Joi.string()
+    .trim()
+    .uppercase()
+    .optional()
+    .allow(null, ""),
   note: Joi.string().allow("")
 });

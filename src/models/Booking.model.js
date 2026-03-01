@@ -25,17 +25,24 @@ const bookingSchema = new mongoose.Schema(
           type: mongoose.Schema.Types.ObjectId,
           ref: "HairService"
         },
-        quantity: {
-          type: Number,
-          default: 1
-        }
+        nameSnapshot: String,
+        originalPriceSnapshot: Number,   // giá gốc
+        serviceDiscountPercent: Number,  // % giảm của service
+        priceAfterServiceDiscount: Number,
+        durationSnapshot: Number,
+        imageSnapshot: [String]
       }
     ],
      combo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "ComboService"
     },
-
+    comboSnapshot: {
+      name: String,
+      originalPrice: Number,
+      comboPrice: Number,
+      imageSnapshot: [String]
+    },
     startTime: {
       type: Date,
       required: true,
@@ -52,25 +59,45 @@ const bookingSchema = new mongoose.Schema(
       type: Number, // minutes
       required: true
     },
+    
+   
     price: {
-      original: Number,
-      final: Number
+       original: Number,                 // tổng giá gốc
+      afterServiceDiscount: Number,     // sau giảm service
+      discountAmount: { type: Number, default: 0 }, // tiền giảm từ mã
+      final: Number                     // giá cuối cùng khách trả
+    }, 
+    // giảm giá từ mã giảm giá
+    discountCard: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DiscountCard",
+      default: null,
+    },
+    discount: {
+      code: String,
+      discountType: {
+        type: String,
+        enum: ["percent", "fixed"]
+      },
+      discountValue: Number,
+      maxDiscountAmount: Number,
+      discountAmount: {
+        type: Number,
+        default: 0
+      }
     },
     payment: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Payment",
+      default: null,
     },
-    paymentMethod: {
-    type: String,
-    enum: ["cash", "vnpay", "momo"],
-    required: false,
-  },
-    paymentStatus: {
-      type: String,
-      enum: ["unpaid", "paid", "failed"],
-      default: "unpaid",
-      index: true,
-    },
+    
+  paymentStatus: {
+  type: String,
+  enum: ["unpaid", "paid", "failed"],
+  default: "unpaid",
+  index: true
+},
     status: {
       type: String,
       enum: ["pending", "confirmed", "completed", "cancelled"],
@@ -82,5 +109,9 @@ const bookingSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
-
+bookingSchema.index({
+  staff: 1,
+  startTime: 1,
+  endTime: 1
+});
 export default mongoose.model("Booking", bookingSchema);

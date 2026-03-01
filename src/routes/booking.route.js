@@ -1,7 +1,8 @@
 import express from "express";
-import { createBooking, getMyBookings,getBookingDetail,cancelBooking } from "../controllers/booking.controller.js";
-import { validate } from "../middlewares/booking.middleware.js";
-import { createBookingSchema } from "../validations/booking.validation.js";
+import { createBooking, getBookingById , checkStaffAvailability,checkAllStaffAvailability,
+  getMyBookings,
+  cancelBooking, previewBooking} from "../controllers/booking.controller.js";
+
 import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { paginationMiddleware } from "../middlewares/pagination.middleware.js";
 const Router = express.Router();
@@ -9,8 +10,14 @@ const Router = express.Router();
 Router.post(
   "/",
   authMiddleware,
-  validate(createBookingSchema),
   createBooking
+);
+
+Router.post("/preview",authMiddleware, previewBooking);
+Router.get(
+  "/check-all-availability",
+  authMiddleware,
+  checkAllStaffAvailability
 );
 Router.get(
   "/my",
@@ -18,11 +25,10 @@ Router.get(
   paginationMiddleware,
   getMyBookings
 );
-Router.get(
-  "/:id",
-  authMiddleware,
-  getBookingDetail
-);
+Router.get("/check-availability", authMiddleware, checkStaffAvailability)
+Router.get("/:id", authMiddleware, getBookingById)
+
+
 Router.patch(
   "/:id/cancel",
   authMiddleware,

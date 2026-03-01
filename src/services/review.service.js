@@ -64,6 +64,16 @@ const getReviewsByStaff = async (staffId) => {
     .populate("user", "name avatar")
     .sort({ createdAt: -1 });
 };
+const getMyReviews = async (userId) => {
+  return Review.find({
+    user: userId,
+    isDeleted: false,
+  })
+    .populate("service", "name images")
+    .populate("staff", "name avatar")
+    .sort({ createdAt: -1 });
+};
+
 
 const updateReview = async (reviewId, userId, payload) => {
   const review = await Review.findOne({
@@ -112,6 +122,7 @@ const deleteReview = async (reviewId, userId) => {
 export const ReviewService = {
   createReview,
   getReviewsByService,
+  getMyReviews,
   updateReview,
   deleteReview,
   getReviewsByStaff,
