@@ -27,6 +27,11 @@ Router.post(
  * Lấy review theo dịch vụ
  */
 Router.get(
+  "/booking/:bookingId",
+  authMiddleware,
+  ReviewController.getReviewsByBooking
+);
+Router.get(
   "/service/:serviceId",
   ReviewController.getReviewsByService
 );

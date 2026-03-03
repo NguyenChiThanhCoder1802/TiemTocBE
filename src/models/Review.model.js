@@ -21,6 +21,12 @@ const reviewSchema = new mongoose.Schema(
       default: null,
       index: true,
     },
+    booking: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Booking",
+      required: false,
+      index: true,
+    },
     rating: {
       type: Number,
       required: true,
@@ -38,20 +44,6 @@ const reviewSchema = new mongoose.Schema(
       type: [String], 
       default: [],
     },
-//     adminReply: {
-//   content: {
-//     type: String,
-//     trim: true,
-//     maxlength: 1000,
-//   },
-//   repliedBy: {
-//     type: mongoose.Schema.Types.ObjectId,
-//     ref: "User", // admin
-//   },
-//   repliedAt: {
-//     type: Date,
-//   },
-// },
     isDeleted: {
       type: Boolean,
       default: false,
@@ -65,12 +57,24 @@ const reviewSchema = new mongoose.Schema(
 
 /* ❗ 1 user chỉ review 1 dịch vụ 1 lần */
 reviewSchema.index(
-  { user: 1, service: 1 },
-  { unique: true, partialFilterExpression: { service: { $ne: null } } }
+  { user: 1, booking: 1, service: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      service: { $ne: null },
+      isDeleted: false
+    }
+  }
 );
 
 reviewSchema.index(
-  { user: 1, staff: 1 },
-  { unique: true, partialFilterExpression: { staff: { $ne: null } } }
+  { user: 1, booking: 1, staff: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      staff: { $ne: null },
+      isDeleted: false
+    }
+  }
 );
 export default mongoose.model("Review", reviewSchema);

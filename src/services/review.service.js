@@ -1,4 +1,5 @@
 import Review from "../models/Review.model.js";
+import Booking from "../models/Booking.model.js";
 import ApiError from "../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 import { recalculateServiceRating } 
@@ -6,20 +7,44 @@ import { recalculateServiceRating }
   import { recalculateStaffRating }
   from "../domains/staff/recalculateStaffRating.js";
 const createReview = async (userId, payload) => {
-  const { service, staff } = payload;
-
-  if (!service && !staff) {
+  const { service, staff, booking } = payload;
+   const bookingDoc = await Booking.findOne({
+    _id: booking,
+    customer: userId,
+    status: "completed"
+  });
+  if (!bookingDoc) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
-      "Review phải gắn với dịch vụ hoặc nhân viên"
+      "Bạn chỉ có thể review booking đã hoàn thành"
     );
   }
-
-  if (service && staff) {
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      "Review chỉ được gắn với dịch vụ HOẶC nhân viên"
+  if (service) {
+    const hasService = bookingDoc.services?.some(
+      s => s.service.toString() === service
     );
+
+    if (!hasService) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Dịch vụ không thuộc booking này"
+      );
+    }
+  }
+  if (service && bookingDoc.bookingType !== "service") {
+  throw new ApiError(
+    StatusCodes.BAD_REQUEST,
+    "Booking combo không thể review dịch vụ riêng lẻ"
+  );
+}
+  //  Check staff thuộc booking
+  if (staff) {
+    if (bookingDoc.staff.toString() !== staff) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Nhân viên không thuộc booking này"
+      );
+    }
   }
 
   try {
@@ -46,7 +71,16 @@ const createReview = async (userId, payload) => {
     throw err;
   }
 };
-
+const getReviewsByBooking = async (bookingId, userId) => {
+ return Review.find({
+  booking: bookingId,
+  user: userId,
+  isDeleted: false
+})
+  .populate("service", "name")
+  .populate("staff", "name")
+  .sort({ createdAt: -1 });
+};
 
 const getReviewsByService = async (serviceId) => {
   return Review.find({
@@ -85,7 +119,11 @@ const updateReview = async (reviewId, userId, payload) => {
   if (!review) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Review không tồn tại");
   }
-
+  delete payload.service;
+  delete payload.staff;
+  delete payload.booking;
+  delete payload.user;
+  delete payload.isDeleted;
   Object.assign(review, payload);
   await review.save();
    if (review.service) {
@@ -101,6 +139,7 @@ const deleteReview = async (reviewId, userId) => {
   const review = await Review.findOne({
     _id: reviewId,
     user: userId,
+     isDeleted: false,
   });
 
   if (!review) {
@@ -122,6 +161,7 @@ const deleteReview = async (reviewId, userId) => {
 export const ReviewService = {
   createReview,
   getReviewsByService,
+  getReviewsByBooking,
   getMyReviews,
   updateReview,
   deleteReview,

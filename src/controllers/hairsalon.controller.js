@@ -120,30 +120,7 @@ const getFeaturedHairServices = async (req, res, next) => {
     next(error);
   }
 };
-const getAvailableServices = async (req, res, next) => {
-  try {
-    const { startTime, staffId } = req.query;
 
-    if (!startTime) {
-      return res.status(400).json({
-        message: "startTime là bắt buộc"
-      });
-    }
-
-    const services =
-      await HairSalonService.getAvailableServices({
-        startTime,
-        staffId
-      });
-
-    res.status(200).json({
-      success: true,
-      data: services
-    });
-  } catch (err) {
-    next(err);
-  }
-};
 export const HairSalonController = {
     getHairServices,
     getHairServiceById,
@@ -154,6 +131,5 @@ export const HairSalonController = {
     getLatestHairServices,
     getMostFavoritedServices,
     getFeaturedHairServices,
-    getAvailableServices
 
 };

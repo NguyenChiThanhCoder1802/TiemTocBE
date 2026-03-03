@@ -212,76 +212,7 @@ const getFeaturedHairServices = async (limit = 8) => {
 
   return services.map(applyServiceDiscount);
 };
-const getAvailableServices = async ({
-  startTime,
-  staffId
-}) => {
-  const start = new Date(startTime);
 
-  // Lấy tất cả service đang hoạt động
-  const services = await HairService.find({
-    isDeleted: false,
-    isActive: true
-  }).lean();
-
-  const availableServices = [];
-
-  for (const service of services) {
-    const end = new Date(
-      start.getTime() + service.duration * 60000
-    );
-
-    /* =============================
-       CASE 1: USER CHỌN STAFF
-    ==============================*/
-    if (staffId) {
-      const busy = await isStaffBusy(
-        staffId,
-        start,
-        end
-      );
-
-      if (!busy) {
-        availableServices.push(
-          applyServiceDiscount(service)
-        );
-      }
-    }
-
-    /* =============================
-       CASE 2: AUTO ASSIGN STAFF
-    ==============================*/
-    else {
-      const staffs = await Staff.find({
-        status: "approved",
-        workingStatus: "active"
-      }).select("_id");
-
-      let hasAvailableStaff = false;
-
-      for (const staff of staffs) {
-        const busy = await isStaffBusy(
-          staff._id,
-          start,
-          end
-        );
-
-        if (!busy) {
-          hasAvailableStaff = true;
-          break;
-        }
-      }
-
-      if (hasAvailableStaff) {
-        availableServices.push(
-          applyServiceDiscount(service)
-        );
-      }
-    }
-  }
-
-  return availableServices;
-};
 /* ================= CREATE ================= */
 const createHairService = async (payload) => {
   const category = await validateCategory(payload.category);
@@ -306,14 +237,6 @@ const createHairService = async (payload) => {
   }
 
   if (!Array.isArray(payload.images)) payload.images = [];
-
-
-  // const discountResult = await calculateServiceDiscount(payload);
-  // payload.finalPrice = discountResult.finalPrice;
-  // payload.serviceDiscount = {
-  //   ...payload.serviceDiscount,
-  //   isActive: discountResult.isActive,
-  // };
 
   return await HairService.create(payload);
 };
@@ -391,5 +314,4 @@ export const HairSalonService = {
   getLatestHairServices,
   getMostFavoritedServices,
   getFeaturedHairServices,
-  getAvailableServices
 };

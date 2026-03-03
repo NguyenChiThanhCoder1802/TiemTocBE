@@ -26,6 +26,7 @@ const bookingSchema = new mongoose.Schema(
           ref: "HairService"
         },
         nameSnapshot: String,
+        slugSnapshot: String,
         originalPriceSnapshot: Number,   // giá gốc
         serviceDiscountPercent: Number,  // % giảm của service
         priceAfterServiceDiscount: Number,
@@ -91,16 +92,20 @@ const bookingSchema = new mongoose.Schema(
       ref: "Payment",
       default: null,
     },
-    
-  paymentStatus: {
-  type: String,
-  enum: ["unpaid", "paid", "failed"],
-  default: "unpaid",
-  index: true
-},
+      paymentMethod: {
+      type: String,
+      enum: ["vnpay", "momo", "cash"],
+      default: "cash"
+    },
+      paymentStatus: {
+      type: String,
+      enum: ["unpaid", "paid", "failed"],
+      default: "unpaid",
+      index: true
+    },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "completed", "cancelled"],
+      enum: ["pending", "confirmed","in_progress", "completed", "cancelled"],
       default: "pending",
       index: true
     },

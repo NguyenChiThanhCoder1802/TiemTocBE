@@ -48,9 +48,20 @@ const comboServiceSchema = new mongoose.Schema(
           ref: "HairService",
           required: true,
         },
-        quantity: {
+        nameSnapshot: {
+          type: String,
+          required: true,
+        },
+
+        unitPriceSnapshot: {
           type: Number,
-          default: 1,
+          required: true,
+          min: 0,
+        },
+
+        durationSnapshot: {
+          type: Number,
+          required: true,
           min: 1,
         },
       },

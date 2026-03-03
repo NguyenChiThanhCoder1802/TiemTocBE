@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import crypto from "crypto";
 import ComboService from "../models/ComboService.model.js";
+import HairService from "../models/HairService.model.js"
 import ApiError from "../utils/ApiError.js";
 import { StatusCodes } from "http-status-codes";
 import { makeSlug } from "../utils/slug.js";
@@ -20,10 +21,7 @@ const getComboById = async (comboId) => {
   const combo = await ComboService.findOne({
     _id: comboId,
     isDeleted: false,
-  }).populate({
-    path: "services.service",
-    select: "name finalPrice duration",
-  });
+  })
 
   if (!combo) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Combo not found");
@@ -62,10 +60,35 @@ const createCombo = async (payload) => {
     );
   }
 
-  /* ---------- SERVICES ---------- */
-  payload.services = Array.isArray(payload.services)
-    ? payload.services
-    : [];
+ if (!Array.isArray(payload.services) || payload.services.length < 2) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Combo must contain at least 2 services"
+    );
+  }
+
+  const enrichedServices = [];
+
+  for (const item of payload.services) {
+    const service = await HairService.findById(item.service);
+
+    if (!service || service.isDeleted) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "HairService not found"
+      );
+    }
+
+    enrichedServices.push({
+      service: service._id,
+      nameSnapshot: service.name,
+      unitPriceSnapshot: service.price,
+      durationSnapshot: service.duration,
+      quantity: item.quantity || 1,
+    });
+  }
+
+  payload.services = enrichedServices;
   return await ComboService.create(payload);
 };
 
@@ -103,6 +126,38 @@ const updateCombo = async (comboId, payload) => {
   if ("tags" in payload) {
     combo.tags = normalizeTags(payload.tags);
     delete payload.tags;
+  }
+  if ("services" in payload) {
+    if (!Array.isArray(payload.services) || payload.services.length < 2) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Combo must contain at least 2 services"
+      );
+    }
+
+    const enrichedServices = [];
+
+    for (const item of payload.services) {
+      const service = await HairService.findById(item.service);
+
+      if (!service || service.isDeleted) {
+        throw new ApiError(
+          StatusCodes.NOT_FOUND,
+          "HairService not found"
+        );
+      }
+
+      enrichedServices.push({
+        service: service._id,
+        nameSnapshot: service.name,
+        unitPriceSnapshot: service.price,
+        durationSnapshot: service.duration,
+        quantity: item.quantity || 1,
+      });
+    }
+
+    combo.services = enrichedServices;
+    delete payload.services;
   }
 
   Object.assign(combo, payload);

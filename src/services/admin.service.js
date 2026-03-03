@@ -1,7 +1,10 @@
 import HairService from "../models/HairService.model.js"
+import Booking from "../models/Booking.model.js"
 import Staff from '../models/Staff.model.js'
 import User from '../models/User.model.js'
+import Payment from "../models/Payment.model.js"
 import { StatusCodes } from 'http-status-codes'
+import { sendBookingCompletedEmail } from "../utils/sendEmail.js";
 import ApiError from '../utils/ApiError.js'
 
 /* ================= ADMIN SERVICE ================= */
@@ -129,4 +132,207 @@ export const approveStaff = async (userId, adminId) => {
   await user.save()
 
   return { message: 'Duyệt nhân viên thành công' }
+}
+// Phần booking
+
+export const getAllBookings = async ({ page = 1, limit = 10, status }) => {
+  const skip = (page - 1) * limit;
+
+  const query = {};
+  if (status) query.status = status;
+
+  const [bookings, total] = await Promise.all([
+    Booking.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("customer", "name email")
+      .populate({
+      path: "staff",
+      populate: { path: "user" ,select: "name"}
+    })
+      .populate("payment"),
+
+    Booking.countDocuments(query)
+  ]);
+
+  return {
+    data: bookings,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
+};
+// thanh toán tiền mặt tại tiệm
+export const markBookingAsPaid = async (bookingId) => {
+  const booking = await Booking.findById(bookingId);
+
+  if (!booking)
+    throw new Error("Booking không tồn tại");
+
+  if (booking.paymentStatus === "paid")
+    throw new Error("Booking đã thanh toán");
+
+  booking.paymentStatus = "paid";
+  booking.paymentMethod = "cash";
+
+  await booking.save();
+
+  return booking;
+};
+// duyệt booking
+export const approveBooking = async (bookingId) => {
+  const booking = await Booking.findById(bookingId);
+
+  if (!booking) {
+    throw new Error("Booking không tồn tại");
+  }
+  if (booking.status === "cancelled") {
+    throw new Error("Booking đã bị huỷ");
+  }
+  if (booking.status !== "pending") {
+    throw new Error("Chỉ có thể duyệt booking đang ở trạng thái chờ");
+  }
+
+  booking.status = "confirmed";
+
+  await booking.save();
+
+  return booking;
+};
+// booking hoàn thành
+export const completeBooking = async (bookingId) => {
+  const booking = await Booking.findById(bookingId)
+  .populate("customer", "name email")
+  .populate({
+      path: "staff",
+      populate: { path: "user", select: "name" }
+    });
+;
+
+  if (!booking)
+    throw new Error("Booking không tồn tại");
+
+  if (booking.status !== "confirmed")
+    throw new Error("Chỉ có thể hoàn thành khi đã xác nhận");
+  let serviceListHTML = "";
+
+  if (booking.bookingType === "combo") {
+    serviceListHTML = `• ${booking.comboSnapshot?.name || "Combo"}`;
+  } else {
+    serviceListHTML =
+      booking.services
+        ?.map(
+          (item) =>
+            `• ${item.nameSnapshot} - ${item.priceAfterServiceDiscount.toLocaleString()} đ`
+        )
+        .join("<br/>") || "Không có dịch vụ";
+  }
+  booking.status = "completed";
+  await booking.save();
+  await sendBookingCompletedEmail({
+    email: booking.customer.email,
+    customerName: booking.customer.name,
+    totalAmount: booking.price.final,
+    bookingId: booking._id,
+    bookingType: booking.bookingType,
+    staffName: booking.staff?.user?.name || "Chưa xác định",
+    serviceList: serviceListHTML,
+    serviceCount: booking.services?.length || 0,
+    paymentMethod: booking.paymentMethod,
+    startTime: booking.startTime,
+    endTime: booking.endTime
+  });
+  return booking;
+};
+
+// Tính doanh thu 
+export const getRevenueStatistics = async () => {
+  const [online, cash] = await Promise.all([
+    // Online VNPay
+    Payment.aggregate([
+      {
+        $match: {
+          method: "vnpay",
+          status: "success"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$amount" },
+          totalOrders: { $sum: 1 }
+        }
+      }
+    ]),
+
+    // Cash từ Booking
+    Booking.aggregate([
+      {
+        $match: {
+          paymentStatus: "paid",
+          paymentMethod: "cash"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$price.final" },
+          totalOrders: { $sum: 1 }
+        }
+      }
+    ])
+  ])
+
+  const onlineData = online[0] || { totalRevenue: 0, totalOrders: 0 }
+  const cashData = cash[0] || { totalRevenue: 0, totalOrders: 0 }
+
+  return {
+    online: onlineData,
+    cash: cashData,
+    totalRevenue:
+      onlineData.totalRevenue + cashData.totalRevenue,
+    totalOrders:
+      onlineData.totalOrders + cashData.totalOrders
+  }
+}
+// Tính doanh thu theo 12 tháng
+export const getOnlineRevenueByMonth = async (year) => {
+  return await Payment.aggregate([
+    {
+      $match: {
+        method: "vnpay",
+        status: "success",
+        paidAt: {
+          $gte: new Date(`${year}-01-01`),
+          $lte: new Date(`${year}-12-31`)
+        }
+      }
+    },
+    {
+      $group: {
+        _id: { month: { $month: "$paidAt" } },
+        revenue: { $sum: "$amount" },
+        orders: { $sum: 1 }
+      }
+    },
+    { $sort: { "_id.month": 1 } }
+  ])
+} 
+// thống kế trạng thái thanh toán
+export const getOnlinePaymentStats = async () => {
+  return await Payment.aggregate([
+    {
+      $match: { method: "vnpay" }
+    },
+    {
+      $group: {
+        _id: "$status",
+        count: { $sum: 1 }
+      }
+    }
+  ])
 }

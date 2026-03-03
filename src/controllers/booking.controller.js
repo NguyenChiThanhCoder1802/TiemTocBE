@@ -28,7 +28,8 @@ export const createBooking = async (req, res, next) => {
 
     const booking = await createBookingService(
       value,
-      req.user.id
+      req.user.id,
+      value.paymentMethod
     );
 
     res.status(201).json({

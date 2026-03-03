@@ -13,11 +13,6 @@ Router.get("/featured",HairSalonController.getFeaturedHairServices);
 Router.get("/latest", HairSalonController.getLatestHairServices);
 Router.get("/popular/favorites", HairSalonController.getMostFavoritedServices);
 Router.get("/slug/:slug", HairSalonController.getServiceBySlug);
-Router.get(
-  "/available",
-  authMiddleware,
-  HairSalonController.getAvailableServices
-);
 Router.get("/:id", HairSalonController.getHairServiceById);
 
 Router.post("/", authMiddleware, verifyAdmin, upload.array("images", 6), uploadServiceImagesMiddleware, validate(createHairServiceSchema), HairSalonController.createHairService);

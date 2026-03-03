@@ -2,6 +2,7 @@ import Joi from "joi";
 import { safeString } from "../utils/joiSafeString.js";
 
 export const createReviewSchema = Joi.object({
+  booking: Joi.string(),
   service: Joi.string().optional().allow(null),
   staff: Joi.string().optional().allow(null),
   images: Joi.array().items(Joi.string()).optional(),
@@ -23,13 +24,16 @@ export const createReviewSchema = Joi.object({
   }
 
   return value;
-});
+})
+.unknown(false);
 export const updateReviewSchema = Joi.object({
   rating: Joi.number().min(1).max(5).optional(),
-
+  service: Joi.string().optional().allow(null),
+  staff: Joi.string().optional().allow(null),
   comment: safeString
     .allow("")
     .max(1000)
     .optional(),
   images: Joi.array().items(Joi.string().uri()).optional(),
-});
+})
+.unknown(false);

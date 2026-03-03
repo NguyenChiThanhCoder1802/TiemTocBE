@@ -7,7 +7,6 @@ const createReview = async (req, res, next) => {
       req.user.id,
       req.body
     );
-
     res.status(StatusCodes.CREATED).json({
       message: "Review thành công",
       data: review,
@@ -16,7 +15,18 @@ const createReview = async (req, res, next) => {
     next(err);
   }
 };
+const getReviewsByBooking = async (req, res, next) => {
+  try {
+    const reviews = await ReviewService.getReviewsByBooking(
+      req.params.bookingId,
+      req.user.id
+    );
 
+    res.json({ data: reviews });
+  } catch (err) {
+    next(err);
+  }
+};
 const getReviewsByService = async (req, res, next) => {
   try {
     const reviews = await ReviewService.getReviewsByService(
@@ -89,6 +99,7 @@ const deleteReview = async (req, res, next) => {
 export const ReviewController = {
   createReview,
   getReviewsByService,
+  getReviewsByBooking,
   getMyReviews,
   updateReview,
   deleteReview,
