@@ -36,7 +36,7 @@ export const createComboSchema = Joi.object({
         quantity: Joi.number().integer().min(1).max(10).default(1),
       })
     )
-    .min(1)
+    .min(2)
     .unique((a, b) => a.service === b.service)
     .required()
     .messages({

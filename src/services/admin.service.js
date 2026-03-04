@@ -233,6 +233,14 @@ export const completeBooking = async (bookingId) => {
   }
   booking.status = "completed";
   await booking.save();
+  if (booking.bookingType === "service" && booking.services?.length > 0) {
+    const serviceIds = booking.services.map(s => s.service);
+
+    await HairService.updateMany(
+      { _id: { $in: serviceIds } },
+      { $inc: { bookingCount: 1 } }
+    );
+  }
   await sendBookingCompletedEmail({
     email: booking.customer.email,
     customerName: booking.customer.name,

@@ -29,10 +29,9 @@ export const createBookingSchema = Joi.object({
   paymentMethod: Joi.string()
     .valid("cash", "vnpay", "momo")
     .required(),
-  discountCode: Joi.string()
-    .trim()
-    .uppercase()
-    .optional()
-    .allow(null, ""),
-  note: Joi.string().allow("")
+  discountCode: Joi.when("bookingType", {
+  is: "service",
+  then: Joi.string().trim().uppercase().allow(null, ""),
+  otherwise: Joi.forbidden()
+}),
 });

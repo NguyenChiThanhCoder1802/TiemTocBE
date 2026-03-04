@@ -9,6 +9,7 @@ import { parseComboBody } from "../middlewares/combo.middleware.js";
 const Router = express.Router();
 
 Router.get("/", ComboController.listCombos);
+Router.get("/slug/:slug", ComboController.getComboBySlug);
 Router.get("/:id", ComboController.getComboById);
 
 Router.post(

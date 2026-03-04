@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import User from "../models/User.model.js";
 import HairService from "../models/HairService.model.js";
 import ApiError from "../utils/ApiError.js";
+import bcrypt from "bcryptjs";
 import { StatusCodes } from "http-status-codes";
 
 const toggleFavoriteService = async (userId, serviceId) => {
@@ -29,11 +30,9 @@ const toggleFavoriteService = async (userId, serviceId) => {
   );
 
   if (isFavorited) {
-    // ❌ Remove favorite
     user.favoriteServices.pull(serviceId);
     service.favoriteCount = Math.max(service.favoriteCount - 1, 0);
   } else {
-    // ❤️ Add favorite
     user.favoriteServices.push(serviceId);
     service.favoriteCount += 1;
   }
@@ -57,8 +56,70 @@ const getMyFavoriteServices = async (userId) => {
 
   return user.favoriteServices || [];
 };
+const updateProfile = async (userId, updateData) => {
+  // Nếu có email → kiểm tra trùng
+  if (updateData.email) {
+    const existingUser = await User.findOne({
+      email: updateData.email,
+      _id: { $ne: userId }
+    });
 
+    if (existingUser) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Email đã được sử dụng"
+      );
+    }
+  }
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    updateData,
+    {
+      new: true,
+      runValidators: true
+    }
+  ).select("-password");
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  return user;
+};
+
+/**
+ * Đổi mật khẩu
+ */
+const changePassword = async (userId, currentPassword, newPassword) => {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not found");
+  }
+
+  const isMatch = await bcrypt.compare(
+    currentPassword,
+    user.password
+  );
+
+  if (!isMatch) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Mật khẩu hiện tại không đúng"
+    );
+  }
+
+  const salt = await bcrypt.genSalt(10);
+  user.password = await bcrypt.hash(newPassword, salt);
+
+  await user.save();
+
+  return true;
+};
 export const UserService = {
   toggleFavoriteService,
-  getMyFavoriteServices
+  getMyFavoriteServices,
+  updateProfile,
+  changePassword
 };

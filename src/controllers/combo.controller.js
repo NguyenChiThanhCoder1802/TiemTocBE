@@ -13,7 +13,16 @@ const getComboById = async (req, res, next) => {
     next(err);
   }
 };
+export const getComboBySlug = async (req, res) => {
+  const combo = await ComboSalonService.getComboBySlug(
+    req.params.slug
+  );
 
+  res.status(StatusCodes.OK).json({
+    success: true,
+    data: combo,
+  });
+};
 /* ================= CREATE ================= */
 const createCombo = async (req, res, next) => {
   try {
@@ -65,6 +74,7 @@ const listCombos = async (req, res, next) => {
 
 export const ComboController = {
   getComboById,
+  getComboBySlug,
   createCombo,
   updateCombo,
   deleteCombo,

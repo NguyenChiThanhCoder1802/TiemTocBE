@@ -89,6 +89,7 @@
     let discountDoc = null;
     let discountSnapshot = null;
     let discountAmount = 0;
+    
     /* ===== SERVICE MODE ===== */
     if (bookingType === "service") {
       const ids = services.map(s => s.service);
@@ -125,7 +126,9 @@
         });
       }
     }
-
+    if (bookingType === "combo" && discountCode) {
+      throw new Error("Combo không được áp dụng mã giảm giá");
+    }
     /* ===== COMBO MODE ===== */
     if (bookingType === "combo") {
       const comboDoc = await ComboService.findById(combo);
@@ -148,7 +151,7 @@
 
     let finalPrice = afterServiceDiscount;
 
-  if (discountCode) {
+  if (bookingType === "service" && discountCode) {
     const discountResult =
       await discountService.applyDiscountToAmount({
         code: discountCode,
@@ -206,9 +209,9 @@
       customer: customerId,
       staff:assignedStaff,
       bookingType,
-      services: servicesSnapshot,
+      services: bookingType === "service" ? servicesSnapshot : [],
       combo: bookingType === "combo" ? combo : null,
-      comboSnapshot,
+      comboSnapshot: bookingType === "combo" ? comboSnapshot : null,
       startTime: start,
       endTime: end,
       duration: totalDuration,
@@ -310,9 +313,22 @@
         }
       }
         /* ===== COMBO MODE ===== */
+        if (bookingType === "combo" && discountCode) {
+  throw new Error("Combo không được áp dụng mã giảm giá");
+}
     if (bookingType === "combo") {
-      const comboDoc = await ComboService.findById(combo);
+     const comboDoc = await ComboService.findOne({
+        _id: combo,
+        isActive: true,
+        isDeleted: false
+      });
+      const now = new Date();
 
+if (comboDoc.activePeriod?.startAt && now < comboDoc.activePeriod.startAt)
+  throw new Error("Combo chưa bắt đầu áp dụng");
+
+if (comboDoc.activePeriod?.endAt && now > comboDoc.activePeriod.endAt)
+  throw new Error("Combo đã hết hạn");
       if (!comboDoc) {
         throw new Error("Combo không tồn tại");
       }
@@ -324,7 +340,7 @@
     let discountAmount = 0;
     let finalPrice = afterServiceDiscount;
 
-    if (discountCode) {
+    if (bookingType === "service" && discountCode) {
       const discountResult =
         await discountService.applyDiscountToAmount({
           code: discountCode,

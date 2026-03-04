@@ -34,7 +34,42 @@ const getComboById = async (comboId) => {
 
   return combo;
 };
+/* ================= GET BY SLUG ================= */
+const getComboBySlug = async (slug) => {
+  if (!slug) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Slug is required"
+    );
+  }
 
+  const combo = await ComboService.findOne({
+    slug,
+    isDeleted: false,
+    isActive: true,
+  })
+    .populate({
+      path: "services.service",
+      select: "name finalPrice duration",
+    })
+     .populate("category", "name")
+    .lean();
+
+  if (!combo) {
+    throw new ApiError(
+      StatusCodes.NOT_FOUND,
+      "Combo not found"
+    );
+  }
+
+  // tăng view count (không block response)
+  ComboService.updateOne(
+    { _id: combo._id },
+    { $inc: { "stats.viewCount": 1 } }
+  ).exec();
+
+  return combo;
+};
 /* ================= CREATE ================= */
 const createCombo = async (payload) => {
   payload.category = await getComboCategoryId();
@@ -199,6 +234,7 @@ const listCombos = async (filter = {}, options = {}) => {
 /* ================= EXPORT ================= */
 export const ComboSalonService = {
   getComboById,
+  getComboBySlug,
   createCombo,
   updateCombo,
   deleteCombo,

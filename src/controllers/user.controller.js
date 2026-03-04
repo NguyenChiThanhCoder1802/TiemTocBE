@@ -47,5 +47,38 @@ export const UserController = {
     } catch (err) {
       next(err);
     }
+  },
+  async updateProfile(req, res, next) {
+  try {
+    const updatedUser = await UserService.updateProfile(
+      req.user.id,
+      req.body
+    );
+
+    res.status(StatusCodes.OK).json({
+      message: "Cập nhật thông tin thành công",
+      data: updatedUser
+    });
+  } catch (err) {
+    next(err);
   }
+},
+
+async changePassword(req, res, next) {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    await UserService.changePassword(
+      req.user.id,
+      currentPassword,
+      newPassword
+    );
+
+    res.status(StatusCodes.OK).json({
+      message: "Đổi mật khẩu thành công"
+    });
+  } catch (err) {
+    next(err);
+  }
+},
 };
