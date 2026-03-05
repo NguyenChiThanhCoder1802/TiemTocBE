@@ -25,8 +25,9 @@ export const authValidation = {
     Joi.object({
       name: Joi.string().min(2).max(50).required(),
       email: Joi.string().email().required(),
-      password: Joi.string().min(6).required()
-      , applyAsStaff: Joi.boolean().optional()
+      password: Joi.string().min(6).required(),
+      confirmpassword: Joi.string().min(6).required(),
+      applyAsStaff: Joi.boolean().optional()
     })
   ),
 
