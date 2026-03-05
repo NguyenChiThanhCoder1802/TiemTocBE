@@ -19,5 +19,6 @@ export const env = {
   VNP_HASH_SECRET: process.env.VNP_HASH_SECRET,
   VNP_HOST: process.env.VNP_HOST,
   FE_URL: process.env.FE_URL,
-  VNP_RETURN_URL: process.env.VNP_RETURN_URL
+  VNP_RETURN_URL: process.env.VNP_RETURN_URL,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY
 }

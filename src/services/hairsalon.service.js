@@ -140,7 +140,7 @@ const getHairServices = async (filters = {},pagination) => {
     price_desc: { finalPrice: -1 },
     popular: { popularityScore: -1 }
   }
-  const sortOption = sortMap[filters.sort] || sortMap.priority
+  let sortOption = sortMap[filters.sort] || sortMap.priority
   if (filters.search) {
     sortOption = { score: { $meta: "textScore" } }
   }

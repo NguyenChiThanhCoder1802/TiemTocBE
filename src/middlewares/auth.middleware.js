@@ -12,16 +12,6 @@ export const verifyAdmin = (req, res, next) => {
   next()
 }
 
-export const verifyRoles = (...roles) => {
-  return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      return next(
-        new ApiError(StatusCodes.FORBIDDEN, 'Bạn không có quyền truy cập')
-      )
-    }
-    next()
-  }
-}
 export const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization
   const refreshToken = req.headers['x-refresh-token']
