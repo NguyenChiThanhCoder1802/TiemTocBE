@@ -1,8 +1,8 @@
 import { StatusCodes } from "http-status-codes";
 
-export const validate = (schema) => {
+export const validate = (schema, property = "body") => {
   return (req, res, next) => {
-    const { error, value } = schema.validate(req.body, {
+    const { error, value } = schema.validate(req[property], {
       abortEarly: false,
       stripUnknown: true,
       convert: true,
@@ -15,8 +15,12 @@ export const validate = (schema) => {
       });
     }
 
+ if (property === "query") {
+      req.validatedQuery = value
+    } else {
+      req[property] = value
+    }
 
-    req.body = value;
 
     next();
   };

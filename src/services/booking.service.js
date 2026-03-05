@@ -402,7 +402,7 @@ if (comboDoc.activePeriod?.endAt && now > comboDoc.activePeriod.endAt)
   /* ================= GET BOOKING DETAIL ================= */
   export const getBookingByIdService = async (bookingId) => {
     const booking = await Booking.findById(bookingId)
-      .populate({ path: "customer", select: "name email avatar" })
+      .populate({ path: "customer", select: "name email phone" })
       .populate({
         path: "staff",
         populate: { path: "user" ,select: "name"}

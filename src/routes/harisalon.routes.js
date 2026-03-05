@@ -6,9 +6,10 @@ import { upload, uploadServiceImagesMiddleware } from "../middlewares/upload.mid
 import { authMiddleware, verifyAdmin } from "../middlewares/auth.middleware.js";
 import { createHairServiceSchema, updateHairServiceSchema } from "../validations/hairsalon.validation.js";
 import { paginationMiddleware } from "../middlewares/pagination.middleware.js";
+import { hairServiceQuerySchema } from "../validations/hairsalon.validation.js";
 const Router = express.Router();
 
-Router.get("/", paginationMiddleware,HairSalonController.getHairServices);
+Router.get("/", validate(hairServiceQuerySchema, "query"),paginationMiddleware,HairSalonController.getHairServices);
 Router.get("/featured",HairSalonController.getFeaturedHairServices);
 Router.get("/latest", HairSalonController.getLatestHairServices);
 Router.get("/popular/favorites", HairSalonController.getMostFavoritedServices);

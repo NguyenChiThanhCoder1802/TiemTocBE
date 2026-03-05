@@ -70,3 +70,31 @@ export const updateHairServiceSchema = Joi.object({
     Joi.string()
   ).optional(),
 }).unknown(false);
+export const hairServiceQuerySchema = Joi.object({
+  category: Joi.string().optional(),
+
+  search: Joi.string().trim().min(1).max(100).optional(),
+
+  minPrice: Joi.number().min(0).optional(),
+
+  maxPrice: Joi.number().min(0).optional(),
+
+  discountOnly: Joi.boolean()
+    .truthy("true")
+    .falsy("false")
+    .optional(),
+
+  sort: Joi.string()
+    .valid(
+      "priority",
+      "newest",
+      "price_asc",
+      "price_desc",
+      "popular"
+    )
+    .optional(),
+
+  page: Joi.number().min(1).optional(),
+
+  limit: Joi.number().min(1).max(100).optional()
+});

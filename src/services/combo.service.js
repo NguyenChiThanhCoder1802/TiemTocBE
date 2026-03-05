@@ -119,7 +119,6 @@ const createCombo = async (payload) => {
       nameSnapshot: service.name,
       unitPriceSnapshot: service.price,
       durationSnapshot: service.duration,
-      quantity: item.quantity || 1,
     });
   }
 

@@ -158,6 +158,10 @@ const hairServiceSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
-
+hairServiceSchema.index({
+  name: "text",
+  tags: "text",
+  description: "text"
+});
 
 export default mongoose.model("HairService", hairServiceSchema);

@@ -14,8 +14,6 @@ import {
 } from "../domains/hairService/hairServiceCalculator.js";
 import { makeSlug } from "../utils/slug.js";
 import crypto from "crypto";
-import { isStaffBusy } from "./booking.service.js";
-import Staff from "../models/Staff.model.js";
 /* ================= CATEGORY VALIDATION ================= */
 const validateCategory = async (category) => {
   const categoryId =
@@ -122,12 +120,11 @@ const getHairServices = async (filters = {},pagination) => {
     const cat = await validateCategory(filters.category);
     query.category = cat._id;
   }
-  if (filters.search) {
-    query.name = {
-      $regex: filters.search,
-      $options: "i"
-    }
+ if (filters.search) {
+  query.$text = {
+    $search: filters.search
   }
+}
    if (filters.minPrice || filters.maxPrice) {
     query.finalPrice = {}
     if (filters.minPrice) query.finalPrice.$gte = Number(filters.minPrice)
@@ -144,9 +141,15 @@ const getHairServices = async (filters = {},pagination) => {
     popular: { popularityScore: -1 }
   }
   const sortOption = sortMap[filters.sort] || sortMap.priority
+  if (filters.search) {
+    sortOption = { score: { $meta: "textScore" } }
+  }
   const { page, limit, skip } = pagination;
+  const projection = filters.search
+    ? { score: { $meta: "textScore" } }
+    : {}
   const [services, totalItems] = await Promise.all([
-      HairService.find(query)
+      HairService.find(query,projection)
         .populate("category", "name")
         .sort(sortOption)
         .skip(skip)
