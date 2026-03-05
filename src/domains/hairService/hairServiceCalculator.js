@@ -53,9 +53,9 @@ export const calculatePopularityScore = (service) => {
 
 export const calculateFeatured = (service) => {
   return (
-    service.bookingCount >= 50 &&
-    service.ratingAverage >= 4.2 &&
-    service.popularityScore >= 70
+    service.bookingCount >= 30 &&
+    service.ratingAverage >= 4.0 &&
+    service.popularityScore >= 50
   );
 };
 

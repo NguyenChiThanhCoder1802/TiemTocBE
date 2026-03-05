@@ -136,8 +136,8 @@ const getHairServices = async (filters = {},pagination) => {
   const sortMap = {
     priority: { priority: -1, popularityScore: -1 },
     newest: { createdAt: -1 },
-    price_asc: { finalPrice: 1 },
-    price_desc: { finalPrice: -1 },
+    price_asc: { price: 1 },
+    price_desc: { price: -1 },
     popular: { popularityScore: -1 }
   }
   let sortOption = sortMap[filters.sort] || sortMap.priority

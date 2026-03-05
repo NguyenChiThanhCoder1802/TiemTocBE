@@ -232,6 +232,18 @@ export const completeBooking = async (bookingId) => {
         .join("<br/>") || "Không có dịch vụ";
   }
   booking.status = "completed";
+  if (booking.paymentMethod === "cash") {
+    booking.paymentStatus = "paid";
+
+    await Payment.updateOne(
+      { booking: booking._id },
+      {
+        status: "success",
+        paidAt: new Date()
+      }
+    );
+  }
+
   await booking.save();
   if (booking.bookingType === "service" && booking.services?.length > 0) {
     const serviceIds = booking.services.map(s => s.service);

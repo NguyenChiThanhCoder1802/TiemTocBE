@@ -16,16 +16,37 @@ export const chatService = {
       isActive: true,
       isDeleted: false
     })
-      .select("name price duration")
+      .select("name price duration serviceDiscount")
       .limit(10)
+    // giảm giá dịch vụ trực tiếp
+    const now = new Date()
 
-    const serviceList = services
-      .map(s => `${s.name} - giá ${s.price} VND - thời gian ${s.duration} phút`)
-      .join("\n")
+const serviceList = services
+  .map(s => {
 
+    const discount = s.serviceDiscount
+
+    const isDiscountActive =
+      discount &&
+      discount.percent > 0 &&
+      discount.startAt &&
+      discount.endAt &&
+      now >= discount.startAt &&
+      now <= discount.endAt
+
+    if (isDiscountActive) {
+      const finalPrice = Math.round(
+        s.price * (1 - discount.percent / 100)
+      )
+
+      return `${s.name} - giá gốc ${s.price} VND - đang giảm ${discount.percent}% còn ${finalPrice} VND - thời gian ${s.duration} phút`
+    }
+
+    return `${s.name} - giá ${s.price} VND - thời gian ${s.duration} phút`
+  })
+  .join("\n")
     /* ================= DISCOUNT ================= */
 
-    const now = new Date()
 
     const discounts = await DiscountCard.find({
       isActive: true,
