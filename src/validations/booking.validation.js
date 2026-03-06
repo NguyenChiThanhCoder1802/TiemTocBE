@@ -24,7 +24,12 @@ export const createBookingSchema = Joi.object({
     otherwise: Joi.forbidden()
   }),
 
-  startTime: Joi.date().required(),
+  startTime: Joi.date()
+    .min("now")
+    .required()
+    .messages({
+      "date.min": "Không thể đặt lịch trong quá khứ"
+    }),
 
   paymentMethod: Joi.string()
     .valid("cash", "vnpay", "momo")
