@@ -19,7 +19,7 @@ const registerService = async ({ name, email, password, confirmpassword, applyAs
 
   const emailNormalized = normalizeEmail(email)
 
-  if (otpCache.get(emailNormalized))
+  if (otpCache.get(`otp_${emailNormalized}`))
     throw new ApiError(
       StatusCodes.TOO_MANY_REQUESTS,
       'Vui lòng chờ OTP cũ hết hạn'
@@ -31,18 +31,16 @@ const registerService = async ({ name, email, password, confirmpassword, applyAs
 
   const hashedPassword = await bcrypt.hash(password, 10)
 
-  await User.create({
+  otpCache.set(`register_${emailNormalized}`, {
     name,
     email: emailNormalized,
     password: hashedPassword,
-    isVerified: false,
-    staffRequested: Boolean(applyAsStaff) || false,
-    staffRequestedAt: applyAsStaff ? new Date() : undefined
+    applyAsStaff: Boolean(applyAsStaff)
   })
 
   const otp = generateOtp()
   const hashedOtp = await bcrypt.hash(otp, 10)
-  otpCache.set(emailNormalized, hashedOtp)
+  otpCache.set(`otp_${emailNormalized}`, hashedOtp)
 
   await sendOtpEmail(emailNormalized, otp)
 }
@@ -55,41 +53,34 @@ const staffRegisterService = async ({ name, email, password, confirmpassword, ex
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Mật khẩu không khớp')
 
   const emailNormalized = normalizeEmail(email)
-
-  if (otpCache.get(emailNormalized))
+  
+ const existed = await User.findOne({ email: emailNormalized })
+  if (existed)
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Email đã tồn tại')
+  if (otpCache.get(`otp_${emailNormalized}`))
     throw new ApiError(
       StatusCodes.TOO_MANY_REQUESTS,
       'Vui lòng chờ OTP cũ hết hạn'
     )
 
-  const existed = await User.findOne({ email: emailNormalized })
-  if (existed)
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Email đã tồn tại')
+ 
 
   const hashedPassword = await bcrypt.hash(password, 10)
 
-  const user = await User.create({
+  otpCache.set(`register_${emailNormalized}`, {
     name,
     email: emailNormalized,
     password: hashedPassword,
-    isVerified: false,
-    staffRequested: true,
-    staffRequestedAt: new Date()
-  })
-
-  // create Staff profile in pending status
-  await Staff.create({
-    user: user._id,
-    experienceYears: experienceYears || 0,
-    skills: Array.isArray(skills) ? skills : [],
-    position: position || 'stylist',
-    status: 'pending',
-    joinedAt: null
+    isStaff: true,
+    experienceYears,
+    skills,
+    position
   })
 
   const otp = generateOtp()
   const hashedOtp = await bcrypt.hash(otp, 10)
-  otpCache.set(emailNormalized, hashedOtp)
+
+  otpCache.set(`otp_${emailNormalized}`, hashedOtp)
 
   await sendOtpEmail(emailNormalized, otp)
 }
@@ -99,7 +90,7 @@ const verifyOtpService = async ({ email, otp }) => {
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu email hoặc OTP')
 
   const emailNormalized = normalizeEmail(email)
-  const cachedOtp = otpCache.get(emailNormalized)
+  const cachedOtp = otpCache.get(`otp_${emailNormalized}`)
 
   if (!cachedOtp)
     throw new ApiError(StatusCodes.BAD_REQUEST, 'OTP đã hết hạn')
@@ -108,14 +99,32 @@ const verifyOtpService = async ({ email, otp }) => {
   if (!isValid)
     throw new ApiError(StatusCodes.BAD_REQUEST, 'OTP không đúng')
 
-  const user = await User.findOne({ email: emailNormalized })
-  if (!user)
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại')
+ const registerData = otpCache.get(`register_${emailNormalized}`)
+  if (!registerData)
+    throw new ApiError(StatusCodes.BAD_REQUEST, 'Dữ liệu đăng ký không tồn tại')
+  if (registerData.isStaff) {
+  await Staff.create({
+    user: user._id,
+    experienceYears: registerData.experienceYears || 0,
+    skills: Array.isArray(registerData.skills) ? registerData.skills : [],
+    position: registerData.position || 'stylist',
+    status: 'pending',
+    joinedAt: null
+  })
+}
+  const user = await User.create({
+    name: registerData.name,
+    email: registerData.email,
+    password: registerData.password,
+    isVerified: true,
+    staffRequested: registerData.applyAsStaff,
+    staffRequestedAt: registerData.applyAsStaff ? new Date() : undefined
+  })
 
-  user.isVerified = true
-  await user.save()
+  otpCache.del(`otp_${emailNormalized}`)
+  otpCache.del(`register_${emailNormalized}`)
 
-  otpCache.del(emailNormalized)
+  return user
 }
 
 const loginService = async ({ email, password }) => {
