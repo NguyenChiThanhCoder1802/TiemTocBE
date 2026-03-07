@@ -88,51 +88,39 @@ export const getTopServices = async () => {
         topPopularity,
     }
 }
+// Staff
+export const createStaff = async (data) => {
+  const {
+    name,
+    phone,
+    email,
+    experienceYears,
+    skills,
+    position,
+    salary,
+    note
+  } = data
 
-export const getStaffList = async ({ onlyOnline = false } = {}) => {
-    if (onlyOnline) {
-        const staffs = await Staff.find()
-            .populate({ path: 'user', match: { isOnline: true }, select: 'name email isOnline role status' })
-        
-        return staffs.filter(s => s.user)
-    }
+  if (!name)
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Thiếu tên nhân viên")
 
-    const staffs = await Staff.find().populate('user', 'name email isOnline role status')
-    return staffs
+  const staff = await Staff.create({
+    name,
+    phone,
+    email,
+    experienceYears,
+    skills,
+    position,
+    salary,
+    note
+  })
+
+  return staff
+}
+export const getStaffList = async () => {
+    return await Staff.find().sort({ createdAt: -1 })
 }
 
-export const approveStaff = async (userId, adminId) => {
-  const user = await User.findById(userId)
-  if (!user)
-    throw new ApiError(StatusCodes.NOT_FOUND, 'User không tồn tại')
-
-  const staff = await Staff.findOne({ user: user._id })
-  if (!staff)
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      'Người dùng chưa đăng ký làm nhân viên'
-    )
-
-  if (staff.status !== 'pending')
-    throw new ApiError(
-      StatusCodes.BAD_REQUEST,
-      'Nhân viên không ở trạng thái chờ duyệt'
-    )
-
-  // ✅ cập nhật staff
-  staff.status = 'approved'
-  staff.manager = adminId
-  staff.joinedAt = staff.joinedAt || new Date()
-  await staff.save()
-
-  // ✅ cập nhật user
-  user.role = 'staff'
-  user.staffRequested = false
-  user.staffRequestedAt = undefined
-  await user.save()
-
-  return { message: 'Duyệt nhân viên thành công' }
-}
 // Phần booking
 
 export const getAllBookings = async ({ page = 1, limit = 10, status }) => {
@@ -147,10 +135,7 @@ export const getAllBookings = async ({ page = 1, limit = 10, status }) => {
       .skip(skip)
       .limit(limit)
       .populate("customer", "name email")
-      .populate({
-      path: "staff",
-      populate: { path: "user" ,select: "name"}
-    })
+      .populate("staff", "name phone")
       .populate("payment"),
 
     Booking.countDocuments(query)
@@ -166,23 +151,7 @@ export const getAllBookings = async ({ page = 1, limit = 10, status }) => {
     }
   };
 };
-// thanh toán tiền mặt tại tiệm
-export const markBookingAsPaid = async (bookingId) => {
-  const booking = await Booking.findById(bookingId);
 
-  if (!booking)
-    throw new Error("Booking không tồn tại");
-
-  if (booking.paymentStatus === "paid")
-    throw new Error("Booking đã thanh toán");
-
-  booking.paymentStatus = "paid";
-  booking.paymentMethod = "cash";
-
-  await booking.save();
-
-  return booking;
-};
 // duyệt booking
 export const approveBooking = async (bookingId) => {
   const booking = await Booking.findById(bookingId);
@@ -207,11 +176,7 @@ export const approveBooking = async (bookingId) => {
 export const completeBooking = async (bookingId) => {
   const booking = await Booking.findById(bookingId)
   .populate("customer", "name email")
-  .populate({
-      path: "staff",
-      populate: { path: "user", select: "name" }
-    });
-;
+  .populate("staff", "name")
 
   if (!booking)
     throw new Error("Booking không tồn tại");
@@ -259,7 +224,7 @@ export const completeBooking = async (bookingId) => {
     totalAmount: booking.price.final,
     bookingId: booking._id,
     bookingType: booking.bookingType,
-    staffName: booking.staff?.user?.name || "Chưa xác định",
+    staffName: booking.staff?.name || "Chưa xác định",
     serviceList: serviceListHTML,
     serviceCount: booking.services?.length || 0,
     paymentMethod: booking.paymentMethod,

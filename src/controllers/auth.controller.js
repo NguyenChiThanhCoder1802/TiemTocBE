@@ -12,15 +12,6 @@ const register = async (req, res, next) => {
   }
 }
 
-const staffRegister = async (req, res, next) => {
-  try {
-    await authService.staffRegisterService(req.body)
-    res.status(StatusCodes.CREATED).json({ message: 'Đã gửi OTP về email (đăng ký nhân viên)' })
-  } catch (err) {
-    next(err)
-  }
-}
-
 const verifyOtp = async (req, res, next) => {
   try {
     await authService.verifyOtpService(req.body)
@@ -95,7 +86,6 @@ const getMe = async (req, res, next) => {
 
 export const AuthController = {
   register,
-  staffRegister,
   getAllUsers,
   getMe,
   login,

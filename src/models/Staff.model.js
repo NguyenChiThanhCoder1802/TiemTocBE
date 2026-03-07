@@ -1,18 +1,26 @@
 import mongoose from "mongoose";
 const StaffSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      unique: true
-    },
+    name: {
+    type: String,
+    required: true,
+    trim: true
+  },
 
-    manager: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    },
+  phone: {
+    type: String,
+    trim: true
+  },
 
+  email: {
+    type: String,
+    trim: true
+  },
+
+  avatar: {
+    type: String,
+    default: ""
+  },
     salary: {
       type: Number,
       default: 0
@@ -23,19 +31,12 @@ const StaffSchema = new mongoose.Schema(
       default: 0
     },
 
-    status: {
-      type: String,
-      enum: ['pending', 'approved', 'rejected'],
-      default: 'pending'
-    },
-
     skills: [{
       type: String
     }],
 
     position: {
       type: String,
-      enum: ['stylist', 'assistant', 'manager'],
       default: 'stylist'
     },
 
@@ -60,7 +61,10 @@ const StaffSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
-    joinedAt: Date,
+    joinedAt: {
+    type: Date,
+    default: Date.now
+  },
     note: String
   },
   { timestamps: true }

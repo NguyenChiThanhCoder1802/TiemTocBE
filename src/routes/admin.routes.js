@@ -1,10 +1,18 @@
 import express from "express";
 import { AdminController } from "../controllers/admin.controller.js";
 import { authMiddleware, verifyAdmin } from "../middlewares/auth.middleware.js";
+import { authValidation } from "../validations/auth.validation.js";
 const Router = express.Router();
 Router.get("/dashboard", authMiddleware, verifyAdmin, AdminController.getAdminDashboard);
+// quản lý nhân viên
+Router.post(
+  "/staffs",
+  authMiddleware,
+  verifyAdmin,
+  authValidation.createStaff,
+  AdminController.createStaff
+)
 Router.get('/staffs', authMiddleware, verifyAdmin, AdminController.getStaffList)
-Router.post('/staffs/:userId/approve', authMiddleware, verifyAdmin, AdminController.approveStaff)
 
 // Booking management
 Router.get(
@@ -26,13 +34,6 @@ Router.patch(
   authMiddleware,
   verifyAdmin,
   AdminController.completeBooking
-)
-
-Router.patch(
-  "/bookings/:bookingId/pay",
-  authMiddleware,
-  verifyAdmin,
-  AdminController.markBookingAsPaid
 )
 // Doanh thu\
 Router.get(

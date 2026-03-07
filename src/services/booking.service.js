@@ -27,7 +27,6 @@
     if (staffId) {
       const staffDoc = await Staff.findOne({
         _id: staffId,
-        status: "approved",
         workingStatus: "active"
       });
 
@@ -54,7 +53,6 @@
     const busyIds = busyBookings.map(b => b.staff);
 
     const availableStaff = await Staff.findOne({
-      status: "approved",
       workingStatus: "active",
       _id: { $nin: busyIds }
     });
@@ -382,7 +380,7 @@ if (comboDoc.activePeriod?.endAt && now > comboDoc.activePeriod.endAt)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
-        .populate("staff")
+        .populate("staff", "name avatar position")
         .populate("combo")
         .populate({path: "payment", select: "method status provider" }),
 
@@ -403,10 +401,7 @@ if (comboDoc.activePeriod?.endAt && now > comboDoc.activePeriod.endAt)
   export const getBookingByIdService = async (bookingId) => {
     const booking = await Booking.findById(bookingId)
       .populate({ path: "customer", select: "name email phone" })
-      .populate({
-        path: "staff",
-        populate: { path: "user" ,select: "name"}
-      })
+      .populate("staff", "name phone avatar position experienceYears")
       .populate("combo")
       .populate({
         path: "services.service",
