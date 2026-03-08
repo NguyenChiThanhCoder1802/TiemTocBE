@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs'
 import User from '../models/User.model.js'
-import Staff from '../models/Staff.model.js'
 import otpCache from '../utils/otp.js'
 import { generateOtp } from '../utils/generateOtp.js'
 import { sendOtpEmail } from '../utils/sendEmail.js'
@@ -10,12 +9,9 @@ import ApiError from '../utils/ApiError.js'
 
 const normalizeEmail = (email) => email.toLowerCase().trim()
 
-const registerService = async ({ name, email, password, confirmpassword, applyAsStaff }) => {
+const registerService = async ({ name, email, password, confirmpassword }) => {
   if (!name || !email || !password || !confirmpassword)
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin đăng ký')
-
-  if (password !== confirmpassword)
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Mật khẩu không khớp')
 
   const emailNormalized = normalizeEmail(email)
 
@@ -35,7 +31,6 @@ const registerService = async ({ name, email, password, confirmpassword, applyAs
     name,
     email: emailNormalized,
     password: hashedPassword,
-    applyAsStaff: Boolean(applyAsStaff)
   })
 
   const otp = generateOtp()
@@ -45,45 +40,6 @@ const registerService = async ({ name, email, password, confirmpassword, applyAs
   await sendOtpEmail(emailNormalized, otp)
 }
 
-const staffRegisterService = async ({ name, email, password, confirmpassword, experienceYears, skills, position }) => {
-  if (!name || !email || !password || !confirmpassword)
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Thiếu thông tin đăng ký')
-
-  if (password !== confirmpassword)
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Mật khẩu không khớp')
-
-  const emailNormalized = normalizeEmail(email)
-  
- const existed = await User.findOne({ email: emailNormalized })
-  if (existed)
-    throw new ApiError(StatusCodes.BAD_REQUEST, 'Email đã tồn tại')
-  if (otpCache.get(`otp_${emailNormalized}`))
-    throw new ApiError(
-      StatusCodes.TOO_MANY_REQUESTS,
-      'Vui lòng chờ OTP cũ hết hạn'
-    )
-
- 
-
-  const hashedPassword = await bcrypt.hash(password, 10)
-
-  otpCache.set(`register_${emailNormalized}`, {
-    name,
-    email: emailNormalized,
-    password: hashedPassword,
-    isStaff: true,
-    experienceYears,
-    skills,
-    position
-  })
-
-  const otp = generateOtp()
-  const hashedOtp = await bcrypt.hash(otp, 10)
-
-  otpCache.set(`otp_${emailNormalized}`, hashedOtp)
-
-  await sendOtpEmail(emailNormalized, otp)
-}
 
 const verifyOtpService = async ({ email, otp }) => {
   if (!email || !otp)
@@ -102,23 +58,12 @@ const verifyOtpService = async ({ email, otp }) => {
  const registerData = otpCache.get(`register_${emailNormalized}`)
   if (!registerData)
     throw new ApiError(StatusCodes.BAD_REQUEST, 'Dữ liệu đăng ký không tồn tại')
-  if (registerData.isStaff) {
-  await Staff.create({
-    user: user._id,
-    experienceYears: registerData.experienceYears || 0,
-    skills: Array.isArray(registerData.skills) ? registerData.skills : [],
-    position: registerData.position || 'stylist',
-    status: 'pending',
-    joinedAt: null
-  })
-}
+  
   const user = await User.create({
     name: registerData.name,
     email: registerData.email,
     password: registerData.password,
     isVerified: true,
-    staffRequested: registerData.applyAsStaff,
-    staffRequestedAt: registerData.applyAsStaff ? new Date() : undefined
   })
 
   otpCache.del(`otp_${emailNormalized}`)
@@ -239,7 +184,6 @@ const getMeAccount = async (userId) => {
 }
 export const authService = {
   registerService,
-  staffRegisterService,
   verifyOtpService,
   loginService,
   forgotPasswordService,

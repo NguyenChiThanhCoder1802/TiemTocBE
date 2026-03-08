@@ -5,19 +5,15 @@ import ApiError from '../utils/ApiError.js'
 import { StatusCodes } from 'http-status-codes'
 
 export const getPublicStaffs = async () => {
-    return Staff.find({
-        status: 'approved',
-        workingStatus: 'active'
-    })
-        .populate('user', 'name avatar')
-        .select('position experienceYears ratingAverage completedBookings workingStatus status')
+    return Staff.find({workingStatus: 'active'})
+        .select(
+      "name avatar position experienceYears ratingAverage completedBookings workingStatus"
+    )
         .sort({ ratingAverage: -1 })
 }
 
 export const getStaffById = async (staffId) => {
     const staff = await Staff.findById(staffId)
-        .populate('user', 'name avatar email')
-        .populate('manager', 'name email')
 
     if (!staff) {
         throw new ApiError(StatusCodes.NOT_FOUND, 'Staff không tồn tại')

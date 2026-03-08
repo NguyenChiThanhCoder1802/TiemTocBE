@@ -2,12 +2,11 @@ import { StatusCodes } from "http-status-codes"
 import {
   getServiceStatistics,
   getTopServices,
+  createStaff as createStaffService,
   getStaffList as getStaffListService,
-  approveStaff as approveStaffService,
   getAllBookings as getAllBookingsService,
   approveBooking as approveBookingService,
   completeBooking as completeBookingService,
-  markBookingAsPaid as markBookingAsPaidService,
   getRevenueStatistics,
   getOnlineRevenueByMonth,
   getOnlinePaymentStats
@@ -30,11 +29,22 @@ const getAdminDashboard = async (req, res, next) => {
   }
 }
 
+const createStaff = async (req, res, next) => {
+  try {
+    const staff = await createStaffService(req.body)
 
+    res.status(StatusCodes.CREATED).json({
+      message: "Tạo nhân viên thành công",
+      data: staff
+    })
+  } catch (err) {
+    next(err)
+  }
+}
 const getStaffList = async (req, res, next) => {
   try {
-    const onlyOnline = req.query.onlyOnline === 'true'
-    const staffs = await getStaffListService({ onlyOnline })
+   
+    const staffs = await getStaffListService()
 
     res.status(StatusCodes.OK).json({ data: staffs })
   } catch (err) {
@@ -42,20 +52,6 @@ const getStaffList = async (req, res, next) => {
   }
 }
 
-const approveStaff = async (req, res, next) => {
-  try {
-    const { userId } = req.params
-    const adminId = req.user.id
-
-    const result = await approveStaffService(userId, adminId)
-
-    res.status(StatusCodes.OK).json({
-      message: result.message
-    })
-  } catch (err) {
-    next(err)
-  }
-}
 // Booking
 const getAllBookings = async (req, res, next) => {
   try {
@@ -100,20 +96,7 @@ const completeBooking = async (req, res, next) => {
     next(err)
   }
 }
-const markBookingAsPaid = async (req, res, next) => {
-  try {
-    const { bookingId } = req.params
 
-    const booking = await markBookingAsPaidService(bookingId)
-
-    res.status(StatusCodes.OK).json({
-      message: "Thanh toán thành công",
-      data: booking
-    })
-  } catch (err) {
-    next(err)
-  }
-}
 const getRevenueDashboard = async (req, res, next) => {
   try {
     const data = await getRevenueStatistics()
@@ -148,12 +131,11 @@ const getOnlinePaymentStatsController = async (req, res, next) => {
 }
 export const AdminController = {
   getAdminDashboard,
+  createStaff,
   getStaffList,
-  approveStaff,
   getAllBookings,
   approveBooking,
   completeBooking,
-  markBookingAsPaid,
   getRevenueDashboard,
   getOnlineRevenueByMonthController,
   getOnlinePaymentStatsController

@@ -1,4 +1,5 @@
 import { createBookingSchema } from "../validations/booking.validation.js";
+import { getAvailableSlotsService } from "../services/bookingSlot.service.js";
 import { createBookingService, checkStaffAvailabilityService,getMyBookingsService,getBookingByIdService,cancelBookingService,previewBookingService } from "../services/booking.service.js";
 export const checkStaffAvailability = async (req, res) => {
   try {
@@ -16,6 +17,36 @@ export const checkStaffAvailability = async (req, res) => {
     res.status(500).json({
       message: error.message
     });
+  }
+};
+export const getAvailableSlots = async (req, res) => {
+  try {
+
+    const { date, duration } = req.query;
+
+    if (!date || !duration) {
+      return res.status(400).json({
+        message: "date và duration là bắt buộc"
+      });
+    }
+
+    const slots = await getAvailableSlotsService (
+      date,
+      Number(duration),
+      req.user?.id
+    );
+
+    res.json({
+      success: true,
+      data: slots
+    });
+
+  } catch (error) {
+
+    res.status(500).json({
+      message: error.message
+    });
+
   }
 };
 export const createBooking = async (req, res, next) => {

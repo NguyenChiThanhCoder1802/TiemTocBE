@@ -1,5 +1,5 @@
 import express from "express";
-import { createBooking, getBookingById , checkStaffAvailability,checkAllStaffAvailability,
+import { createBooking, getBookingById , checkStaffAvailability,checkAllStaffAvailability,getAvailableSlots,
   getMyBookings,
   cancelBooking, previewBooking} from "../controllers/booking.controller.js";
 
@@ -18,6 +18,11 @@ Router.get(
   "/check-all-availability",
   authMiddleware,
   checkAllStaffAvailability
+);
+Router.get(
+  "/available-slots",
+  authMiddleware,
+  getAvailableSlots
 );
 Router.get(
   "/my",

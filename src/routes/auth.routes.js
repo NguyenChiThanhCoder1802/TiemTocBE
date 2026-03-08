@@ -7,7 +7,6 @@ import { authMiddleware,verifyAdmin } from '../middlewares/auth.middleware.js'
 const Router = express.Router();
 
 Router.post("/register", limit.registerLimitMiddleware, authValidation.register, AuthController.register);
-Router.post("/staff-register", limit.registerLimitMiddleware, authValidation.staffRegister, AuthController.staffRegister);
 Router.post("/verify-otp", limit.otpLimitMiddleware, authValidation.verifyOtp, AuthController.verifyOtp);
 Router.post("/login", limit.loginLimitMiddleware, authValidation.login, AuthController.login);
 Router.post('/forgot-password', authValidation.forgotPassword, AuthController.forgotPassword);

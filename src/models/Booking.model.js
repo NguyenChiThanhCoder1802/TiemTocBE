@@ -111,6 +111,12 @@ const bookingSchema = new mongoose.Schema(
     },
 
     note: String,
+    // thông báo giờ hẹn
+    reminderSent: {
+    type: Boolean,
+    default: false,
+    index: true
+  }
   },
   { timestamps: true }
 );
@@ -118,5 +124,25 @@ bookingSchema.index({
   staff: 1,
   startTime: 1,
   endTime: 1
+});
+bookingSchema.index({
+  startTime: 1,
+  endTime: 1
+});
+
+bookingSchema.index({
+  staff: 1,
+  startTime: 1
+});
+
+bookingSchema.index({
+  customer: 1,
+  startTime: 1
+});
+//  index cho cron job reminder
+bookingSchema.index({
+  startTime: 1,
+  reminderSent: 1,
+  status: 1
 });
 export default mongoose.model("Booking", bookingSchema);

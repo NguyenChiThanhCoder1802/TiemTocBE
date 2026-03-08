@@ -1,7 +1,7 @@
 import Joi from "joi";
 
 export const createBookingSchema = Joi.object({
-  staff: Joi.string(),
+  staff: Joi.string().allow(null),
 
   bookingType: Joi.string()
     .valid("service", "combo")
