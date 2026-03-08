@@ -4,6 +4,7 @@ import Booking from "../models/Booking.model.js";
 import Payment from "../models/Payment.model.js";
 import DiscountCard from "../models/DiscountCard.model.js";
 import { ProductCode, VnpLocale } from "vnpay";
+import { notificationService } from "./notification.service.js";
 
 export const paymentService = {
   async createBookingPaymentUrl(req) {
@@ -123,6 +124,11 @@ export const paymentService = {
   if (isPaymentSuccess) {
     payment.booking.status = "confirmed";
     payment.booking.paymentStatus = "paid";
+    await notificationService.notifyPaymentSuccess(
+      payment.user,
+      payment.booking._id,
+      payment._id
+    )
 
     /* ===== UPDATE DISCOUNT ATOMIC ===== */
     if (payment.booking.discountCard) {

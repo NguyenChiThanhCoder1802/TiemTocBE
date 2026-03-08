@@ -5,21 +5,13 @@ const register = async (req, res, next) => {
   try {
     await authService.registerService(req.body)
     res.status(StatusCodes.CREATED).json({
-      message: 'Đã gửi OTP về email'
+      message: 'Đăng ký thành công'
     })
   } catch (err) {
     next(err)
   }
 }
 
-const verifyOtp = async (req, res, next) => {
-  try {
-    await authService.verifyOtpService(req.body)
-    res.json({ message: 'Xác thực thành công' })
-  } catch (err) {
-    next(err)
-  }
-}
 
 const login = async (req, res, next) => {
   try {
@@ -90,8 +82,6 @@ export const AuthController = {
   getMe,
   login,
   logout,
-
   forgotPassword,
   resetPassword,
-  verifyOtp
 }

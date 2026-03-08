@@ -4,7 +4,6 @@ import Staff from '../models/Staff.model.js'
 import User from '../models/User.model.js'
 import Payment from "../models/Payment.model.js"
 import { StatusCodes } from 'http-status-codes'
-import { sendBookingCompletedEmail } from "../utils/sendEmail.js";
 import ApiError from '../utils/ApiError.js'
 
 /* ================= ADMIN SERVICE ================= */
@@ -187,14 +186,6 @@ export const completeBooking = async (bookingId) => {
 
   if (booking.bookingType === "combo") {
     serviceListHTML = `• ${booking.comboSnapshot?.name || "Combo"}`;
-  } else {
-    serviceListHTML =
-      booking.services
-        ?.map(
-          (item) =>
-            `• ${item.nameSnapshot} - ${item.priceAfterServiceDiscount.toLocaleString()} đ`
-        )
-        .join("<br/>") || "Không có dịch vụ";
   }
   booking.status = "completed";
   if (booking.paymentMethod === "cash") {
@@ -218,19 +209,7 @@ export const completeBooking = async (bookingId) => {
       { $inc: { bookingCount: 1 } }
     );
   }
-  await sendBookingCompletedEmail({
-    email: booking.customer.email,
-    customerName: booking.customer.name,
-    totalAmount: booking.price.final,
-    bookingId: booking._id,
-    bookingType: booking.bookingType,
-    staffName: booking.staff?.name || "Chưa xác định",
-    serviceList: serviceListHTML,
-    serviceCount: booking.services?.length || 0,
-    paymentMethod: booking.paymentMethod,
-    startTime: booking.startTime,
-    endTime: booking.endTime
-  });
+ 
   return booking;
 };
 

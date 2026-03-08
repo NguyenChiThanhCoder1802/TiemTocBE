@@ -5,6 +5,7 @@ import Payment from "../models/Payment.model.js";
 import DiscountCard from "../models/DiscountCard.model.js";
 import { isValidTimeSlot, isWithinBusinessHours } from "../utils/booking/timeSlot.js";
 import { calculateBookingInfo } from "../utils/booking/calculateBookingInfo.js";
+import { notificationService } from "./notification.service.js";
 /* ================= CHECK STAFF ================= */
 export const isStaffBusy = async (staffId, start, end) => {
   return await Booking.exists({
@@ -216,7 +217,7 @@ if (conflict) {
     booking.paymentStatus = "unpaid";
 
     await booking.save();
-
+    await notificationService.notifyBookingSuccess(customerId,booking._id)
     /* ===== UPDATE DISCOUNT ===== */
     if (booking.discountCard) {
       await DiscountCard.updateOne(

@@ -11,6 +11,7 @@ import { ComboRouter } from "./combo.route.js";
 import { BookingRouter } from "./booking.route.js";
 import { paymentRouter } from "./payment.route.js";
 import { ChatRouter } from "./chat.route.js";
+import { NotificationRouter } from "./notification.route.js";
 // import { BookingDraftRouter } from "./bookingDraft.route.js";
 
 const Router = express.Router();
@@ -26,6 +27,7 @@ Router.use("/discount-cards", DiscountCardRouter);
 Router.use("/bookings", BookingRouter);
 Router.use("/payments", paymentRouter);  
 Router.use("/chat",ChatRouter)
+Router.use("/notifications",NotificationRouter)
 // Router.use("/booking-drafts", BookingDraftRouter);
 
 export const APIS = Router;
