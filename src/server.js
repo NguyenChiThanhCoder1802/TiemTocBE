@@ -4,7 +4,6 @@ import { connectDB } from "./config/mongodb.js";
 import { errorHandler } from "./middlewares/error.middleware.js";
 import {env } from "./config/environment.js";
 import { APIS } from "./routes/index.routes.js";
-import { startBookingReminderJob } from "./jobs/bookingReminder.job.js";
 
 const app = express();
 const PORT = env.PORT;
@@ -14,7 +13,6 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
 connectDB();
-startBookingReminderJob();
 app.use("/api", APIS);
 
 app.get("/", (req, res) => {

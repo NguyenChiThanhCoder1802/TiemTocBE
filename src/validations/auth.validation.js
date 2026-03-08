@@ -68,18 +68,7 @@ export const authValidation = {
 ),
 
 
-  verifyOtp: validate(
-    Joi.object({
-      email: Joi.string().email().required().messages({
-        "string.email": "Email không hợp lệ",
-        "string.empty": "Email không được để trống"
-      }),
-      otp: Joi.string().length(6).required().messages({
-        "string.length": "OTP phải gồm 6 ký tự",
-        "string.empty": "OTP không được để trống"
-      })
-    })
-  ),
+ 
   login: validate(
     Joi.object({
       email: Joi.string().email().required().messages({
@@ -106,11 +95,6 @@ export const authValidation = {
      email: Joi.string().email().required().messages({
         "string.email": "Email không hợp lệ",
         "string.empty": "Email không được để trống"
-      }),
-
-      otp: Joi.string().length(6).required().messages({
-        "string.length": "OTP phải gồm 6 ký tự",
-        "string.empty": "OTP không được để trống"
       }),
 
       newPassword: Joi.string().min(6).required().messages({

@@ -39,15 +39,8 @@ const userSchema = new mongoose.Schema(
         index: true
       }
     ],
-    staffRequested: {
-      type: Boolean,
-      default: false
-    },
-    staffRequestedAt: Date,
-    isOnline: {
-      type: Boolean,
-      default: false
-    },
+
+
     status: {
       type: String,
       enum: ["active", "blocked"],
