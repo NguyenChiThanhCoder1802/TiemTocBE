@@ -31,10 +31,6 @@ const StaffSchema = new mongoose.Schema(
       default: 0
     },
 
-    skills: [{
-      type: String
-    }],
-
     position: {
       type: String,
       default: 'stylist'

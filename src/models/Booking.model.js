@@ -119,4 +119,18 @@ bookingSchema.index({
   startTime: 1,
   endTime: 1
 });
+bookingSchema.index({
+  startTime: 1,
+  endTime: 1
+});
+
+bookingSchema.index({
+  staff: 1,
+  startTime: 1
+});
+
+bookingSchema.index({
+  customer: 1,
+  startTime: 1
+});
 export default mongoose.model("Booking", bookingSchema);

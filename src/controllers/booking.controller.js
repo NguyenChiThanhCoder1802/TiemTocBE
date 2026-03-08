@@ -32,7 +32,8 @@ export const getAvailableSlots = async (req, res) => {
 
     const slots = await getAvailableSlotsService (
       date,
-      Number(duration)
+      Number(duration),
+      req.user?.id
     );
 
     res.json({

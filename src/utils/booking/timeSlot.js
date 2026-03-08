@@ -28,7 +28,7 @@ export const isWithinBusinessHours = (startTime, duration) => {
     return {
       valid: false,
       message: `Tiệm mở cửa lúc ${BUSINESS_CONFIG.openHour}:00`,
-      suggestedStarTime: open.toISOString()
+      suggestedStartTime: open.toISOString()
     };
   }
 
