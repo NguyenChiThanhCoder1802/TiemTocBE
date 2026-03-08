@@ -66,3 +66,35 @@ export const sendBookingCompletedEmail = async ({
     html
   });
 };
+export const sendBookingReminderEmail = async ({
+  email,
+  customerName,
+  startTime,
+  staffName
+}) => {
+
+  const formatDate = (date) =>
+    new Date(date).toLocaleString("vi-VN");
+
+  await transporter.sendMail({
+    from: `"Hair Salon" <${env.EMAIL_USER}>`,
+    to: email,
+    subject: "Nhắc lịch hẹn làm tóc ",
+    html: `
+      <h3>Xin chào ${customerName}</h3>
+
+      <p>Bạn có lịch hẹn tại salon với:</p>
+
+      <b>${staffName}</b>
+
+      <p>Thời gian:</p>
+
+      <h2>${formatDate(startTime)}</h2>
+
+      <p>Vui lòng đến đúng giờ để được phục vụ tốt nhất ✨</p>
+
+      <p>Hair Salon</p>
+    `
+  });
+
+};
