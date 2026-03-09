@@ -13,15 +13,16 @@ export const isValidTimeSlot = (date) => {
 /* ================= CHECK GIỜ MỞ CỬA ================= */
 
 export const isWithinBusinessHours = (startTime, duration) => {
+  const VN_OFFSET = 7
   const start = new Date(startTime);
 
   const end = new Date(start.getTime() + duration * 60000);
 
   const open = new Date(start);
-  open.setHours(BUSINESS_CONFIG.openHour, 0, 0, 0);
+  open.setUTCHours(BUSINESS_CONFIG.openHour - VN_OFFSET, 0, 0, 0);
 
   const close = new Date(start);
-  close.setHours(BUSINESS_CONFIG.closeHour, 0, 0, 0);
+  close.setUTCHours(BUSINESS_CONFIG.closeHour - VN_OFFSET, 0, 0, 0);
 
   if (start < open) {
 

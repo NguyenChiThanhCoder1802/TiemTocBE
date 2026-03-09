@@ -4,6 +4,7 @@ import { generateDaySlots } from "../utils/booking/generateSlots.js";
 import { BUSINESS_CONFIG } from "../config/business.config.js";
 
 export const getAvailableSlotsService = async (date, duration, customerId) => {
+  const VN_OFFSET = 7
   const requestDate = new Date(date);
 
   const now = new Date();
@@ -26,11 +27,11 @@ export const getAvailableSlotsService = async (date, duration, customerId) => {
   const result = [];
 
   const dayStart = new Date(date);
-  dayStart.setHours(0,0,0,0);
+  dayStart.setUTCHours(0,0,0,0);
 
 
   const dayEnd = new Date(date);
-  dayEnd.setHours(23,59,59,999);
+  dayEnd.setUTCHours(23,59,59,999);
    /* ===== QUERY 1: LẤY BOOKING TRONG NGÀY ===== */
 
   const bookings = await Booking.find({
@@ -58,7 +59,7 @@ export const getAvailableSlotsService = async (date, duration, customerId) => {
     const end = new Date(start.getTime() + duration * 60000);
 
     const close = new Date(date);
-    close.setHours(BUSINESS_CONFIG.closeHour, 0, 0, 0);
+    close.setUTCHours(BUSINESS_CONFIG.closeHour - VN_OFFSET, 0, 0, 0);
     // thời gian đặt ít nhất
     const minBookingTime = new Date(
     now.getTime() + BUSINESS_CONFIG.minAdvanceMinutes * 60000
