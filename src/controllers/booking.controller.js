@@ -118,12 +118,10 @@ export const checkAllStaffAvailability = async (req, res) => {
 };
 export const getMyBookings = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.pagination;
      const { status } = req.query;
     const result = await getMyBookingsService(
       req.user.id,
-      Number(page),
-      Number(limit),
+      req.pagination,
       status
     );
 

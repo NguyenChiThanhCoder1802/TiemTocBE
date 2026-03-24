@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { makeSlug } from "../utils/slug.js";
 const StaffSchema = new mongoose.Schema(
   {
     name: {
@@ -6,7 +7,11 @@ const StaffSchema = new mongoose.Schema(
     required: true,
     trim: true
   },
-
+   slug: {
+    type: String,
+    unique: true,
+    index: true
+  },
   phone: {
     type: String,
     trim: true
@@ -65,5 +70,11 @@ const StaffSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+StaffSchema.pre("save", function ( ) {
+
+  if (this.isModified("name")) {
+    this.slug = makeSlug(this.name)
+  }
+})
 
 export default mongoose.model("Staff", StaffSchema);

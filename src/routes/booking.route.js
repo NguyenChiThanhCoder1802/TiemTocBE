@@ -7,11 +7,7 @@ import { authMiddleware } from "../middlewares/auth.middleware.js";
 import { paginationMiddleware } from "../middlewares/pagination.middleware.js";
 const Router = express.Router();
 
-Router.post(
-  "/",
-  authMiddleware,
-  createBooking
-);
+Router.post("/",authMiddleware,createBooking);
 
 Router.post("/preview",authMiddleware, previewBooking);
 Router.get(

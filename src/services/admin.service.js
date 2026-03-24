@@ -87,38 +87,7 @@ export const getTopServices = async () => {
         topPopularity,
     }
 }
-// Staff
-export const createStaff = async (data) => {
-  const {
-    name,
-    phone,
-    email,
-    experienceYears,
-    skills,
-    position,
-    salary,
-    note
-  } = data
 
-  if (!name)
-    throw new ApiError(StatusCodes.BAD_REQUEST, "Thiếu tên nhân viên")
-
-  const staff = await Staff.create({
-    name,
-    phone,
-    email,
-    experienceYears,
-    skills,
-    position,
-    salary,
-    note
-  })
-
-  return staff
-}
-export const getStaffList = async () => {
-    return await Staff.find().sort({ createdAt: -1 })
-}
 
 // Phần booking
 
@@ -201,6 +170,19 @@ export const completeBooking = async (bookingId) => {
   }
 
   await booking.save();
+  // cập nhật thông tin cho user
+  await User.updateOne(
+    { _id: booking.customer },
+    {
+      $inc: {
+        "stats.bookingCount": 1,
+        "stats.totalSpent": booking.price.final
+      },
+      $set: {
+        "stats.lastBookingAt": new Date()
+      }
+    }
+  )
   if (booking.bookingType === "service" && booking.services?.length > 0) {
     const serviceIds = booking.services.map(s => s.service);
 
