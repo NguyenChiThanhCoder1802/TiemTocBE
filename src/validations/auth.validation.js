@@ -43,10 +43,43 @@ export const authValidation = {
         'any.only': 'Mật khẩu xác nhận không khớp'
       }),
         })
+      ),
+
+  createStaff: validate(
+  Joi.object({
+    name: Joi.string().required().messages({
+        "string.empty": "Tên nhân viên không được để trống"
+      }),
+    phone: Joi.string().pattern(/^[0-9]{9,11}$/).optional().messages({
+        "string.pattern.base": "Số điện thoại không hợp lệ"
+      }),
+    email: Joi.string().email().optional().messages({
+        "string.email": "Email không hợp lệ"
+      }),
+    experienceYears: Joi.number().min(0).messages({
+        "number.base": "Số năm kinh nghiệm phải là số",
+        "number.min": "Số năm kinh nghiệm không được nhỏ hơn 0"
+      }),
+    skills: Joi.array().items(Joi.string()),
+    position: Joi.string().valid("stylist"),
+    salary: Joi.number(),
+    note: Joi.string().allow("")
+  })
 ),
 
 
- 
+  verifyOtp: validate(
+    Joi.object({
+      email: Joi.string().email().required().messages({
+        "string.email": "Email không hợp lệ",
+        "string.empty": "Email không được để trống"
+      }),
+      otp: Joi.string().length(6).required().messages({
+        "string.length": "OTP phải gồm 6 ký tự",
+        "string.empty": "OTP không được để trống"
+      })
+    })
+  ),
   login: validate(
     Joi.object({
       email: Joi.string().email().required().messages({
@@ -73,6 +106,11 @@ export const authValidation = {
      email: Joi.string().email().required().messages({
         "string.email": "Email không hợp lệ",
         "string.empty": "Email không được để trống"
+      }),
+
+      otp: Joi.string().length(6).required().messages({
+        "string.length": "OTP phải gồm 6 ký tự",
+        "string.empty": "OTP không được để trống"
       }),
 
       newPassword: Joi.string().min(6).required().messages({

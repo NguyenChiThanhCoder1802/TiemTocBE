@@ -1,0 +1,76 @@
+<mjml>
+  <mj-head>
+    <mj-title>Hair Salon - Hoàn tất dịch vụ</mj-title>
+    <mj-preview>Buổi làm tóc của bạn đã hoàn tất </mj-preview>
+    <mj-attributes>
+      <mj-all font-family="Arial, sans-serif" />
+      <mj-button border-radius="8px" font-weight="bold" />
+    </mj-attributes>
+  </mj-head>
+
+  <mj-body background-color="#f4f6f8">
+
+    <mj-section background-color="#d2a679" padding="20px">
+      <mj-column>
+        <mj-text align="center" color="#ffffff" font-size="22px" font-weight="bold">
+          Hair Salon
+        </mj-text>
+        <mj-text align="center" color="#ffffff">
+          Cảm ơn bạn đã sử dụng dịch vụ
+        </mj-text>
+      </mj-column>
+    </mj-section>
+
+   <mj-section background-color="#ffffff" padding="25px">
+  <mj-column>
+
+    <mj-text font-size="18px">
+      Xin chào <b>{{customerName}}</b>,
+    </mj-text>
+
+    <mj-text>
+      Buổi làm tóc của bạn đã hoàn tất!
+    </mj-text>
+
+    <mj-divider border-color="#eeeeee" />
+
+    <mj-text font-weight="bold" font-size="16px">
+      Thông tin đặt lịch của bạn
+    </mj-text>
+
+    <mj-text>
+      • Loại booking: {{bookingType}}<br/>
+      • Nhân viên phục vụ: {{staffName}}<br/>
+      • Tổng số dịch vụ: {{serviceCount}}<br/>
+      • Bắt đầu: {{startTime}}<br/>
+      • Kết thúc: {{endTime}}<br/>
+      • Phương thức thanh toán: {{paymentMethod}}
+    </mj-text>
+
+    <mj-divider border-color="#eeeeee" />
+    <mj-text font-weight="bold" font-size="16px">
+        Dịch vụ đã chọn
+      </mj-text>
+
+      <mj-text>
+        {{serviceList}}
+      </mj-text>
+
+      <mj-divider border-color="#eeeeee" />
+    <mj-text font-size="18px" font-weight="bold" color="#d2a679">
+      Tổng tiền: {{totalAmount}} đ
+    </mj-text>
+
+    <mj-button
+      background-color="#deb887"
+      color="#ffffff"
+      href="{{reviewUrl}}"
+    >
+      Đánh giá dịch vụ
+    </mj-button>
+
+  </mj-column>
+</mj-section>
+
+  </mj-body>
+</mjml>

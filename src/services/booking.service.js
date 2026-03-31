@@ -289,10 +289,11 @@ export const previewBookingService = async (data, userId) => {
 };
 export const getMyBookingsService = async (
   userId,
-  pagination,
+  page,
+  limit,
   status
 ) => {
-  const { page, limit, skip } = pagination
+  const skip = (page - 1) * limit;
   const query = { customer: userId };
 
   if (status) {
@@ -303,7 +304,6 @@ export const getMyBookingsService = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .lean()
       .populate("staff", "name avatar position")
       .populate("combo")
       .populate({ path: "payment", select: "method status provider" }),
