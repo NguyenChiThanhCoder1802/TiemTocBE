@@ -39,15 +39,8 @@ const userSchema = new mongoose.Schema(
         index: true
       }
     ],
-    staffRequested: {
-      type: Boolean,
-      default: false
-    },
-    staffRequestedAt: Date,
-    isOnline: {
-      type: Boolean,
-      default: false
-    },
+
+
     status: {
       type: String,
       enum: ["active", "blocked"],
@@ -63,11 +56,12 @@ const userSchema = new mongoose.Schema(
     },
     loyalty: {
       points: { type: Number, default: 0 },
-      level: {
-        type: String,
-        enum: ['bronze', 'silver', 'gold', 'vip'],
-        default: 'bronze'
-      }
+      
+      tier: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "LoyaltyTier",
+      index: true
+    }
     },
     stats: {
       bookingCount: { type: Number, default: 0 },
